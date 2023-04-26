@@ -17,7 +17,7 @@ module.exports = {
 	},
 	plugins: ['@typescript-eslint', 'prettier'],
 	rules: {
-		'prettier/prettier': 'error',
+		'prettier/prettier': ['error', { endOfLine: 'auto' }],
 		'no-case-declarations': 'off',
 		'no-constant-condition': 'off',
 		'@typescript-eslint/ban-ts-comment': 'off'
