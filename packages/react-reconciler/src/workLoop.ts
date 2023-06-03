@@ -50,7 +50,7 @@ function renderRoot(root: fiberRootNode) {
 	do {
 		try {
 			workLoop();
-			// 没有问题这里会直接跳出
+			// 没有问题这里会直接跳出,到这个阶段的workInProgress已经遍历完，workInProgress会指向null
 			break;
 		} catch (e) {
 			if (__DEV__) {
@@ -61,7 +61,10 @@ function renderRoot(root: fiberRootNode) {
 		}
 	} while (true);
 
+	// root.current.alternate就是workInProgress最开始指向的根节点
+	// 这个时候的root.current.alternate已经是调度完成了，所以finishedWork会有最新的stateNode，也会有需要更新的flags标记
 	const finishedWork = root.current.alternate;
+	// 保存到finishedWork
 	root.finishedWork = finishedWork;
 
 	// 这里就可以根据fiberNode树 书中的flags
@@ -84,7 +87,9 @@ function commitRoot(root: fiberRootNode) {
 
 	// 判断是否存在3个子阶段需要执行得到操作
 	// 需要判断root本身的flags以及root的subtreeFlags
+	// 这里是按位与操作subtreeHasEffect !== NoFlags标识存在子节点需要更新操作
 	const subtreeHasEffect = (finishedWork.subtreeFlags & MutationMask) !== NoFlags;
+	// rootHasEffect标识根节点存在需要更新的操作
 	const rootHasEffect = (finishedWork.flags & MutationMask) !== NoFlags;
 	if (subtreeHasEffect || rootHasEffect) {
 		// beforeMutation

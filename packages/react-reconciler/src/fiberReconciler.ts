@@ -21,8 +21,9 @@ export function updateContainer(element: ReactElementType | null, root: fiberRoo
 	const update = createUpdate<ReactElementType | null>(element);
 	// UpdateQueue是保存Update的数据结构
 	// enqueueUpdate是将Update保存进UpdateQueue
+	// 这里会将{ action: ReactElementType }结构数据保存金hostRootFiber.updateQueue.shared.padding里面
 	enqueueUpdate(hostRootFiber.updateQueue as UpdateQueue<ReactElementType | null>, update);
-	// 执行调度
+	// 然后执行调度
 	scheduleUpdateOnFiber(hostRootFiber);
 	return element;
 }

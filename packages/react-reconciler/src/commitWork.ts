@@ -8,11 +8,14 @@ let nextEffect: FiberNode | null = null;
 export const commitMutationEffects = (finishedWork: FiberNode) => {
 	nextEffect = finishedWork;
 
+	console.log('commitMutationEffects', finishedWork);
+
 	while (nextEffect !== null) {
 		// 向下遍历
 		const child: FiberNode | null = nextEffect.child;
 
 		if ((nextEffect.subtreeFlags & MutationMask) !== NoFlags && child !== null) {
+			// 若存在子节点需要更新的操作则向下继续遍历
 			nextEffect = child;
 		} else {
 			// 证明要找的子节点不包含subtreeFlags

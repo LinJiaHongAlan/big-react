@@ -34,7 +34,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 	function placeSingleChild(fiber: FiberNode) {
 		// 在首屏渲染的情况下
 		if (shouldTrackEffects && fiber.alternate === null) {
-			// 安慰或操作
+			// 按位或操作
 			fiber.flags |= Placement;
 		}
 		return fiber;
@@ -52,6 +52,8 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		if (typeof newChild === 'object' && newChild !== null) {
 			switch (newChild.$$typeof) {
 				case REACT_ELEMENT_TYPE:
+					// 根据newChild生成一个新的FiberNode并且指向returnFiber，如果是首次渲染的话会直接给flags加上Placement标记
+					// 最终返回新的FiberNode
 					return placeSingleChild(reconcileSingleElement(returnFiber, currentFiber, newChild));
 				default:
 					if (__DEV__) {

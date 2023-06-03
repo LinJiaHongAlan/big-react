@@ -14,9 +14,9 @@ export const completeWork = (wip: FiberNode) => {
 			if (current !== null && wip.stateNode) {
 				// update
 			} else {
-				// 1.构建DOM
+				// 1.构建真实DOM
 				const instance = createInstance(wip.type, newProps);
-				// 2.将DOM插入到DOM树种
+				// 2.将DOM插入到DOM树中
 				appendAllChildren(instance, wip);
 				wip.stateNode = instance;
 			}
