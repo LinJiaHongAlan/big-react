@@ -16,6 +16,11 @@ const ReactElement = function (type: Type, key: Key, ref: Ref, props: Props): Re
 	return element;
 };
 
+// 是否是一个合法的Element
+export function isValidElement(object: any) {
+	return typeof object === 'object' && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
+}
+
 export const jsx = (type: ElementType, config: any, ...maybeChildren: any) => {
 	// 特殊处理key: Key = null;
 	let key: Key = null;
