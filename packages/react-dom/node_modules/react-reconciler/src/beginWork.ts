@@ -63,7 +63,8 @@ function updateHostComponent(wip: FiberNode) {
 }
 
 // 这个方法整体就是传入FiberNode以及当前子节点的ReactElementType
-// 然后比较FiberNode子节点与ReactElementType生成新的子节点FiberNode
+// 然后比较FiberNode子节点与ReactElementType生成新的子节点FiberNode并添加上操作标记
+// 将FiberNode从新与当前父节点的FiberNode保存起来
 function reconileChildren(wip: FiberNode, children?: ReactElementType) {
 	// 目前只有HostRootFiber是有alternate的
 	const current = wip.alternate;
@@ -76,6 +77,7 @@ function reconileChildren(wip: FiberNode, children?: ReactElementType) {
 		wip.child = reconcileChildFibers(wip, current?.child, children);
 	} else {
 		// mount
+		// 不追踪副作用
 		wip.child = mountChildFibers(wip, null, children);
 	}
 }

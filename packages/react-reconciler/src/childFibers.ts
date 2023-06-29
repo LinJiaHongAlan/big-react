@@ -29,6 +29,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 	}
 
 	// 通过ReactElementType生成新的FiberNode并建立父子的FiberNode的关系
+	// 返回的是子FiberNode
 	function reconcileSingleElement(
 		returnFiber: FiberNode,
 		currentFiber: FiberNode | null,
