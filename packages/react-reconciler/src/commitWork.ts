@@ -38,7 +38,7 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode) => {
 	const flags = finishedWork.flags;
 
 	if ((flags & Placement) !== NoFlags) {
-		// 执行Placement操作,这个操作会生成真实dom，stateNode
+		// 执行Placement这个是插入操作,这个操作会生成真实dom，stateNode
 		commitPlacement(finishedWork);
 		// 去除标记
 		finishedWork.flags &= ~Placement;
@@ -178,7 +178,7 @@ function getHostParent(fiber: FiberNode): Container | null {
 function appendPlacementNodeIntoContainer(finishedWork: FiberNode, hostParent: Container) {
 	// 向下遍历
 	if (finishedWork.tag === HostComponent || finishedWork.tag === HostText) {
-		// 这里是将FiberNode的stateNode给插入到父级的DOM中，其实部分元素在completeWork已经插入，再调用一次的话等于将原来的DOM再插入一次，不会有任何变化，但貌似没有性能优化，这是一个没必要的操作
+		// 这里是将FiberNode的stateNode给插入到父级的DOM中，其实部分元素在completeWork已经插入,目前的话这里只有HostRoot的时候才会在HostRoot.child上面添加上插入标记
 		// 只有在最后的当finishedWork = HostRootFiber的时候此时容器hostParent拿到的是挂载的节点#root这个时候就会挂载到界面上
 		appendChildToContainer(hostParent, finishedWork.stateNode);
 		return;

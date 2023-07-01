@@ -169,7 +169,9 @@ function dispatchSetState<State>(
 ) {
 	// 创建一个update
 	const update = createUpdate(action);
+	// 绑定update
 	enqueueUpdate(updateQueue, update);
+	// 执行调度,会重新调用renderRoot
 	scheduleUpdateOnFiber(fiber);
 }
 
