@@ -36,6 +36,9 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		element: ReactElementType
 	) {
 		const key = element.key;
+		// currentFiber也就是returnFiber的child子节点,如果是首次挂载的时候这个时候returnFiber由于还没有走到该方法下面的逻辑
+		// 这意味着child还没有根据element生成并添加到child中，所以currentFiber === null,所以第一次加载的时候就不会复用FiberNode
+		// 使得新返回出去的子节点的alternate为null
 		if (currentFiber !== null) {
 			// 如果旧的子节点FiberNode不为null，证明这个是update的情况
 			work: if (currentFiber.key === key) {
@@ -92,12 +95,12 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		return fiber;
 	}
 
-	// 插入单一的节点(性能优化)
-	// 打上标记
+	// 添加插入的标记
 	function placeSingleChild(fiber: FiberNode) {
-		// 在首屏渲染的情况下
+		// shouldTrackEffects表示需要追踪副作用
+		// fiber代表着子节点的FiberNode,fiber.alternate === null,表示子节点是首次加载，否则表示是经过复用的，就不需要添加插入标记
 		if (shouldTrackEffects && fiber.alternate === null) {
-			// 按位或操作
+			// 按位或操作，添加插入标记
 			fiber.flags |= Placement;
 		}
 		return fiber;
@@ -111,7 +114,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		// 子节点的ReactElement
 		newChild?: ReactElementType
 	) {
-		// 判断当前fiber的类型
+		// 判断当前ReactElementType的类型,这里组件类型跟普通节点类型的$$typeof都是一样的都等于REACT_ELEMENT_TYPE
 		if (typeof newChild === 'object' && newChild !== null) {
 			switch (newChild.$$typeof) {
 				case REACT_ELEMENT_TYPE:

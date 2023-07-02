@@ -7,7 +7,9 @@ import { Container } from 'hostConfig';
  * @tag 表示FiberNode是什么类型的节点
  */
 export class FiberNode {
+	// 这个就是ReactElementType的type值，当为组件的时候type就是方法体，如果为普通节点type就是'div'之类的字符串，跟vue的h函数的第一个参数一个概念
 	type: any;
+	// 这里也是也是区分不同节点类型的一个地方,在根据ReactElementType生产FiberNode的时候有做判断，唯独多了一个HostRoot的类型，是ReactElementType没有的
 	tag: WorkTag;
 	pendingProps: Props;
 	key: Key;

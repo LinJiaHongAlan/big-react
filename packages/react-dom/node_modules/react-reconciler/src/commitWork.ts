@@ -38,7 +38,8 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode) => {
 	const flags = finishedWork.flags;
 
 	if ((flags & Placement) !== NoFlags) {
-		// 执行Placement这个是插入操作,这个操作会生成真实dom，stateNode
+		// 执行Placement这个是插入操作
+		// 会将finishedWork插入到父级的上一层，如果父级是HostRoot则直接插入到容器里面
 		commitPlacement(finishedWork);
 		// 去除标记
 		finishedWork.flags &= ~Placement;
@@ -140,7 +141,7 @@ function commitNestedComponent(root: FiberNode, onCommitUnmount: (fiber: FiberNo
 
 const commitPlacement = (finishedWork: FiberNode) => {
 	if (__DEV__) {
-		console.warn('执行Placement操作', finishedWork);
+		console.log('执行Placement操作', finishedWork);
 	}
 	// parent DOM
 	// 这里是拿到当前的fiberNode的父节点

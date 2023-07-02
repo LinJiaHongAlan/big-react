@@ -30,7 +30,8 @@ export const beginWork = (wip: FiberNode) => {
 };
 
 function updateFunctionComponent(wip: FiberNode) {
-	// 这里也是拿到子节点然然调用reconileChildren
+	// renderWithHooks方法就是执行函数组件wip的方法
+	// 当执行完内部的函数方法之后，就会再次调用到useState,那么就会走到update生命周期的hook,会消费上一次dispatch传入的action,最终返回函数组件内部的返回的ReactElementType
 	const nextChildren = renderWithHooks(wip);
 	reconileChildren(wip, nextChildren);
 	return wip.child;

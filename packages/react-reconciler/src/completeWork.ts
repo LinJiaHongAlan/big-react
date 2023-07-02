@@ -12,10 +12,12 @@ export const completeWork = (wip: FiberNode) => {
 	// 递归中的归
 
 	const newProps = wip.pendingProps;
+	// 这里那上一个值，新的值在begin阶段就已经更新好了
 	const current = wip.alternate;
 
 	switch (wip.tag) {
 		case HostComponent:
+			// current !== null证明当前节点是被复用过的
 			if (current !== null && wip.stateNode) {
 				// update
 			} else {

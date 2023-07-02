@@ -65,9 +65,12 @@ const HooksDispatcherOnUpdate: DisPatcher = {
 	useState: updateState
 };
 
-// initialState就是函数组件调用useState传入得到值
+/**
+ * 组件更新的时候的useState
+ * @returns
+ */
 function updateState<State>(): [State, Dispatch<State>] {
-	// 这个是函数组件第一个调用的时候生成的hooks链表，同时会返回当前的hook对象
+	// 拿到组件上一次的hook信息
 	const hook = updateWorkInProgresHook();
 
 	// 实现updateState中[计算新的state的逻辑]
@@ -75,10 +78,13 @@ function updateState<State>(): [State, Dispatch<State>] {
 	const pending = queue.shared.pending;
 
 	if (pending !== null) {
+		// 如果上一个组件有调用dispatch更改值的话，那么pending也就是传入的上一个调用dispatch的时候添加进得update
+		// 在这里我们消费掉update得到最新的值
 		const { memoizedState } = processUpdateQueue(hook.memoizedState, pending);
+		// 将最新的结果更新到hook中
 		hook.memoizedState = memoizedState;
 	}
-
+	// 再将当前的新的hook结果返回出去
 	return [hook.memoizedState, queue.dispatch as Dispatch<State>];
 }
 
@@ -152,6 +158,7 @@ function mountState<State>(initialState: (() => State) | State): [State, Dispatc
 	// 将当前点额函数组件的FiberNode=currentlyRenderingFiber传递给dispatch以及当前的queue
 	// @ts-ignore
 	const dispatch = dispatchSetState.bind(null, currentlyRenderingFiber, queue);
+	// 将dispatch保存起来(暂时没看到一定要保存起来的必要)
 	queue.dispatch = dispatch;
 	return [memoizedState, dispatch];
 }

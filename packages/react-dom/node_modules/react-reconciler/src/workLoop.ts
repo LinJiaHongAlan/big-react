@@ -79,7 +79,7 @@ function commitRoot(root: fiberRootNode) {
 	}
 
 	if (__DEV__) {
-		console.warn('commit阶段开始', finishedWork);
+		console.log('commit阶段开始', finishedWork);
 	}
 
 	// 重置
@@ -114,6 +114,7 @@ function workLoop() {
 function performUnitOfWork(fiber: FiberNode) {
 	// beginWork会拿到下一层得到子FiberNode
 	const next = beginWork(fiber);
+	// 更新Props的值，memoizedProps这个值其实就是对于的ReactElement的Props，里面有后续节点的信息
 	fiber.memoizedProps = fiber.pendingProps;
 	// 判断是否有下一层的FiberNode
 	if (next === null) {
