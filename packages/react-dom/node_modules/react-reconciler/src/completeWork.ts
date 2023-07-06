@@ -2,6 +2,7 @@ import { Container, appendInitialChild, createInstance, createTextInstance } fro
 import { FiberNode } from './fiber';
 import { FunctionComponent, HostComponent, HostRoot, HostText } from './workTags';
 import { NoFlags, Update } from './filberFlags';
+import { updateFiberProps } from 'react-dom/src/SyntheticEvent';
 
 function markUpdate(fiber: FiberNode) {
 	// 添加更新标记
@@ -20,6 +21,10 @@ export const completeWork = (wip: FiberNode) => {
 			// current !== null证明当前节点是被复用过的
 			if (current !== null && wip.stateNode) {
 				// update
+				// 1判断props是否变化
+				// 如果变了打上Update flag
+				// 这里暂时先直接改
+				updateFiberProps(wip.stateNode, newProps);
 			} else {
 				// 1.构建真实DOM
 				const instance = createInstance(wip.type, newProps);
