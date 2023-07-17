@@ -1,4 +1,4 @@
-import { Container, appendChildToContainer, commitUpdate, removeChild } from 'hostConfig';
+import { Container, Instance, appendChildToContainer, commitUpdate, removeChild } from 'hostConfig';
 import { FiberNode, fiberRootNode } from './fiber';
 import { ChildDeletion, MutationMask, NoFlags, Placement, Update } from './filberFlags';
 import { FunctionComponent, HostComponent, HostRoot, HostText } from './workTags';
@@ -38,7 +38,7 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode) => {
 	const flags = finishedWork.flags;
 
 	if ((flags & Placement) !== NoFlags) {
-		// 执行Placement这个是插入操作
+		// 执行Placement这个是插入或者移动标记
 		// 会将finishedWork插入到父级的上一层，如果父级是HostRoot则直接插入到容器里面
 		commitPlacement(finishedWork);
 		// 去除标记
@@ -146,11 +146,50 @@ const commitPlacement = (finishedWork: FiberNode) => {
 	// parent DOM
 	// 这里是拿到当前的fiberNode的父节点
 	const hostParent = getHostParent(finishedWork);
+
+	// host sibling
+	const sibling = getHostSibling(finishedWork);
+
 	// 接下来找到finishedWork对应的DOM并且将DOM append 到 parentDOM中
 	if (hostParent !== null) {
-		appendPlacementNodeIntoContainer(finishedWork, hostParent);
+		insertOrAppendPlacementNodeIntoContainer(finishedWork, hostParent, sibling);
 	}
 };
+
+function getHostSibling(fiber: FiberNode) {
+	let node: FiberNode = fiber;
+
+	findSibling: while (true) {
+		while (node.sibling === null) {
+			const parent = node.return;
+
+			if (parent === null || parent.tag === HostComponent || parent.tag === HostRoot) {
+				return null;
+			}
+			node = parent;
+		}
+
+		node.sibling.return = node.return;
+		node = node.sibling;
+
+		while (node.tag !== HostText && node.tag !== HostComponent) {
+			// 向下遍历
+			if ((node.flags & Placement) !== NoFlags) {
+				continue findSibling;
+			}
+			if (node.child === null) {
+				continue findSibling;
+			} else {
+				node.child.return = node;
+				node = node.child;
+			}
+		}
+
+		if ((node.flags & Placement) === NoFlags) {
+			return node.stateNode;
+		}
+	}
+}
 
 // 获得父级的宿主环境的节点
 function getHostParent(fiber: FiberNode): Container | null {
@@ -176,23 +215,35 @@ function getHostParent(fiber: FiberNode): Container | null {
 	return null;
 }
 
-function appendPlacementNodeIntoContainer(finishedWork: FiberNode, hostParent: Container) {
+function insertOrAppendPlacementNodeIntoContainer(
+	finishedWork: FiberNode,
+	hostParent: Container,
+	before: Instance
+) {
 	// 向下遍历
 	if (finishedWork.tag === HostComponent || finishedWork.tag === HostText) {
 		// 这里是将FiberNode的stateNode给插入到父级的DOM中，其实部分元素在completeWork已经插入,目前的话这里只有HostRoot的时候才会在HostRoot.child上面添加上插入标记
 		// 只有在最后的当finishedWork = HostRootFiber的时候此时容器hostParent拿到的是挂载的节点#root这个时候就会挂载到界面上
-		appendChildToContainer(hostParent, finishedWork.stateNode);
+		if (before) {
+			insertChildToContainer(finishedWork.stateNode, hostParent, before);
+		} else {
+			appendChildToContainer(hostParent, finishedWork.stateNode);
+		}
 		return;
 	}
 	// 到这里为组件类型，组件类型本身是不存在stateNode的所以我们需要取当前的FiberNode.child
 	const child = finishedWork.child;
 	if (child !== null) {
-		appendPlacementNodeIntoContainer(child, hostParent);
+		insertOrAppendPlacementNodeIntoContainer(child, hostParent, before);
 		let sibling = child.sibling;
 
 		while (sibling !== null) {
-			appendPlacementNodeIntoContainer(sibling, hostParent);
+			insertOrAppendPlacementNodeIntoContainer(sibling, hostParent, before);
 			sibling = sibling.sibling;
 		}
 	}
+}
+
+export function insertChildToContainer(child: Instance, container: Container, before: Instance) {
+	container.insertBefore(child, before);
 }

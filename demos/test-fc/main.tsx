@@ -1,22 +1,34 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 
-function Child() {
-	return <span>big-react</span>;
-}
-
 function App() {
 	const [num, setNum] = useState(100);
-	return (
-		<div
+
+	const arr =
+		num % 2 === 0
+			? [<li key="1">1</li>, <li key="2">2</li>, <li key="3">3</li>]
+			: [<li key="3">3</li>, <li key="2">2</li>, <li key="1">1</li>];
+
+	console.log(
+		<ul
 			onClick={() => {
 				setNum(num + 1);
 			}}
-			type="ljh"
 		>
-			{num}
-		</div>
+			{arr}
+		</ul>
+	);
+	return (
+		<ul
+			onClick={() => {
+				setNum(num + 1);
+			}}
+		>
+			{arr}
+		</ul>
 	);
 }
+
+console.log(<App />);
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<App />);
