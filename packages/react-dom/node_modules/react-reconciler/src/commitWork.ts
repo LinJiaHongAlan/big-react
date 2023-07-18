@@ -20,11 +20,13 @@ export const commitMutationEffects = (finishedWork: FiberNode) => {
 			// 证明要找的子节点不包含subtreeFlags
 			// 向上遍历DFS
 			while (nextEffect !== null) {
+				// 这里是处理节点的核心
 				commitMutationEffectsOnFiber(nextEffect);
 				// 兄弟节点
 				const sibling: FiberNode | null = nextEffect.sibling;
 
 				if (sibling !== null) {
+					// 如果存在兄弟节点，我们先处理兄弟节点，直到没有再向上找父级
 					nextEffect = sibling;
 					break;
 				}
@@ -139,12 +141,14 @@ function commitNestedComponent(root: FiberNode, onCommitUnmount: (fiber: FiberNo
 	}
 }
 
+// 这里是处理Placement标记的函数
 const commitPlacement = (finishedWork: FiberNode) => {
+	console.log('jntm', finishedWork);
 	if (__DEV__) {
 		console.log('执行Placement操作', finishedWork);
 	}
 	// parent DOM
-	// 这里是拿到当前的fiberNode的父节点
+	// 这里是拿到当前的fiberNode的父节点的宿主环境Container
 	const hostParent = getHostParent(finishedWork);
 
 	// host sibling
@@ -160,20 +164,27 @@ function getHostSibling(fiber: FiberNode) {
 	let node: FiberNode = fiber;
 
 	findSibling: while (true) {
+		// node.sibling表示当前是同级中的最后一个或只有一个节点
 		while (node.sibling === null) {
+			// 当前节点若不存在兄弟节点则往上获取父级
 			const parent = node.return;
 
+			// 判断是否是组件
 			if (parent === null || parent.tag === HostComponent || parent.tag === HostRoot) {
 				return null;
 			}
+			// 如果是组件继续往上找
 			node = parent;
 		}
 
+		// 如果兄弟节点存在，改变兄弟节点的父级指向,并将当前指正指向兄弟节点
 		node.sibling.return = node.return;
 		node = node.sibling;
 
+		// 这里应该是判断兄弟节点是否是组件类型，如果是组件的话则关联组件的child
 		while (node.tag !== HostText && node.tag !== HostComponent) {
 			// 向下遍历
+			// 如果组件类型带有Placement标记则直接跳过当前最大的循环，从新开始会进入到下一个节点的判断
 			if ((node.flags & Placement) !== NoFlags) {
 				continue findSibling;
 			}
@@ -245,5 +256,6 @@ function insertOrAppendPlacementNodeIntoContainer(
 }
 
 export function insertChildToContainer(child: Instance, container: Container, before: Instance) {
+	// document的原生方法，将child插入到container内部的before节点之前
 	container.insertBefore(child, before);
 }

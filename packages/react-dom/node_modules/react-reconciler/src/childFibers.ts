@@ -126,7 +126,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		return fiber;
 	}
 
-	function reconcileChildrenArry(
+	function reconcileChildrenArray(
 		returnFiber: FiberNode,
 		currentFiberChild: FiberNode | null,
 		newChild: any
@@ -245,9 +245,9 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 							// 返回一个复用的值
 							return useFiber(before, element.props);
 						}
-						// 如果类型不相同， 就不可以复用，需要创建一个新的
-						return createFiberFromElement(element);
 					}
+					// 如果类型不相同或者是旧的节点不存在， 就不可以复用，需要创建一个新的
+					return createFiberFromElement(element);
 
 					// TODO
 					if (Array.isArray(element) && __DEV__) {
@@ -275,16 +275,11 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 					// placeSingleChild这里如果有追踪副作用的情况下会添加插入的标记Placement(给currentFiber.child添加)
 					// 也就是说HostRoot的子节点在首次渲染的时候会添加Placement标记
 					return placeSingleChild(reconcileSingleElement(returnFiber, currentFiber, newChild));
-				default:
-					if (__DEV__) {
-						console.warn('未实现的reconcile类型', newChild);
-					}
-					break;
 			}
-		}
-		// 多节点的情况 ul > 3li
-		if (Array.isArray(newChild)) {
-			return reconcileChildrenArry(returnFiber, currentFiber, newChild);
+			// 多节点的情况 ul > 3li
+			if (Array.isArray(newChild)) {
+				return reconcileChildrenArray(returnFiber, currentFiber, newChild);
+			}
 		}
 		// HostText
 		if (typeof newChild === 'string' || typeof newChild === 'number') {
