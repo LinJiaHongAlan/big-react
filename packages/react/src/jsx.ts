@@ -61,21 +61,14 @@ export const jsx = (type: ElementType, config: any, ...maybeChildren: any) => {
 	return ReactElement(type, key, ref, props);
 };
 
-export const jsxDEV = (type: ElementType, config: any) => {
+export const jsxDEV = (type: ElementType, config: any, key: Key) => {
 	// 特殊处理key: Key = null;
-	let key: Key = null;
 	const props: Props = {};
 	let ref: Ref = null;
 
 	// 处理config
 	for (const prop in config) {
 		const val = config[prop];
-		if (prop === 'key') {
-			if (val !== undefined) {
-				key = val;
-			}
-			continue;
-		}
 		if (prop === 'ref') {
 			if (val !== undefined) {
 				ref = val;

@@ -189,9 +189,11 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 				// 拿出上一次节点的下标
 				const oldIndex = current.index;
 				if (oldIndex < lastPlacedIndex) {
+					console.log('插入移动');
 					// 移动
 					newFiber.flags |= Placement;
 				} else {
+					console.log('不移动');
 					// 不移动
 					lastPlacedIndex = oldIndex;
 				}

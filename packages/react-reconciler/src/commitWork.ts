@@ -36,6 +36,7 @@ export const commitMutationEffects = (finishedWork: FiberNode) => {
 	}
 };
 
+// commit节点向上递归开始处理标记的方法
 const commitMutationEffectsOnFiber = (finishedWork: FiberNode) => {
 	const flags = finishedWork.flags;
 
@@ -143,7 +144,6 @@ function commitNestedComponent(root: FiberNode, onCommitUnmount: (fiber: FiberNo
 
 // 这里是处理Placement标记的函数
 const commitPlacement = (finishedWork: FiberNode) => {
-	console.log('jntm', finishedWork);
 	if (__DEV__) {
 		console.log('执行Placement操作', finishedWork);
 	}
@@ -151,11 +151,11 @@ const commitPlacement = (finishedWork: FiberNode) => {
 	// 这里是拿到当前的fiberNode的父节点的宿主环境Container
 	const hostParent = getHostParent(finishedWork);
 
-	// host sibling
+	// 找出当前节点的下一个没有添加Placement的兄弟节点，如果是最后一个就返回null
 	const sibling = getHostSibling(finishedWork);
-
 	// 接下来找到finishedWork对应的DOM并且将DOM append 到 parentDOM中
 	if (hostParent !== null) {
+		// 如果sibling为null调用appendChild插入到最后，如果不为null则插入到sibling之前
 		insertOrAppendPlacementNodeIntoContainer(finishedWork, hostParent, sibling);
 	}
 };
@@ -164,7 +164,8 @@ function getHostSibling(fiber: FiberNode) {
 	let node: FiberNode = fiber;
 
 	findSibling: while (true) {
-		// node.sibling表示当前是同级中的最后一个或只有一个节点
+		// 这里是考虑到当前节点为组件的根节点的时候我们的相邻节点其实是组件的节点，所以要通过return取到上一级组件节点的相邻节点
+		// <Component><div>当前为组件根节点相邻节点是当前fiberNode.return.siblint</div></Component><div></div>
 		while (node.sibling === null) {
 			// 当前节点若不存在兄弟节点则往上获取父级
 			const parent = node.return;
@@ -177,28 +178,39 @@ function getHostSibling(fiber: FiberNode) {
 			node = parent;
 		}
 
-		// 如果兄弟节点存在，改变兄弟节点的父级指向,并将当前指正指向兄弟节点
+		// 如果下一级兄弟节点存在，改变兄弟节点的父级指向,并将当前指正指向兄弟节点
 		node.sibling.return = node.return;
 		node = node.sibling;
 
-		// 这里应该是判断兄弟节点是否是组件类型，如果是组件的话则关联组件的child
+		// 这里处理兄弟节点是组件的情况，如果是组件我们应该插入到组件的根节点
+		// <div></div><Component><div>我是兄弟节点的组件插入到我的前面</div></Component>
 		while (node.tag !== HostText && node.tag !== HostComponent) {
 			// 向下遍历
-			// 如果组件类型带有Placement标记则直接跳过当前最大的循环，从新开始会进入到下一个节点的判断
 			if ((node.flags & Placement) !== NoFlags) {
+				// 判断下组件的根节点时候是不移动类型，如果同样是有Placement标记的花我们应该跳出当前循环继续往下寻找
 				continue findSibling;
 			}
+			// 如果组件类型为null同样跳出
 			if (node.child === null) {
 				continue findSibling;
 			} else {
+				// 如果存在并且不为移动类型，则将指针指向当前节点继续再while循环中判断
 				node.child.return = node;
 				node = node.child;
+				// 这里为何不直接跳出是还有组件内继续还是组件的可能性
 			}
 		}
 
+		// 这里找到下一个最近的不移动的节点
+		// 13245 -> 21354
+		// 那么需要移动的就是134
+		// 1的下一个不移动节点是5，插入到5的前面变成32415
+		// 3的下一个不移动节点是5，插入到前面变成24135  -----> 这里由于1跟3前面都是5所以先执行移动的必定再后执行移动的左边，因此符合新节点的顺序
+		// 4的不存在下一个不移动节点，插入最后21354
 		if ((node.flags & Placement) === NoFlags) {
 			return node.stateNode;
 		}
+		// 如果当前节点是也是被打上Placement标记结束当前循环继续往下
 	}
 }
 
@@ -238,6 +250,7 @@ function insertOrAppendPlacementNodeIntoContainer(
 		if (before) {
 			insertChildToContainer(finishedWork.stateNode, hostParent, before);
 		} else {
+			console.log('后面插入', hostParent, finishedWork.stateNode);
 			appendChildToContainer(hostParent, finishedWork.stateNode);
 		}
 		return;
@@ -248,6 +261,7 @@ function insertOrAppendPlacementNodeIntoContainer(
 		insertOrAppendPlacementNodeIntoContainer(child, hostParent, before);
 		let sibling = child.sibling;
 
+		// 组件内有可能是多个根节点
 		while (sibling !== null) {
 			insertOrAppendPlacementNodeIntoContainer(sibling, hostParent, before);
 			sibling = sibling.sibling;
@@ -255,6 +269,7 @@ function insertOrAppendPlacementNodeIntoContainer(
 	}
 }
 
+// 在已有子节点之前插入新的子节点
 export function insertChildToContainer(child: Instance, container: Container, before: Instance) {
 	// document的原生方法，将child插入到container内部的before节点之前
 	container.insertBefore(child, before);
