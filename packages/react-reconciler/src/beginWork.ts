@@ -4,6 +4,7 @@ import { UpdateQueue, processUpdateQueue } from './updateQueue';
 import { FunctionComponent, HostComponent, HostRoot, HostText } from './workTags';
 import { mountChildFibers, reconcileChildFibers } from './childFibers';
 import { renderWithHooks } from './fiberHooks';
+import { Fragment } from 'react';
 
 // 递归中的递阶段
 // beginWork的工作流程
@@ -20,6 +21,8 @@ export const beginWork = (wip: FiberNode) => {
 			return null;
 		case FunctionComponent:
 			return updateFunctionComponent(wip);
+		case Fragment:
+			return updateFragment(wip);
 		default:
 			if (__DEV__) {
 				console.warn('beginWork未实现的类型');
@@ -28,6 +31,12 @@ export const beginWork = (wip: FiberNode) => {
 	}
 	return null;
 };
+
+function updateFragment(wip: FiberNode) {
+	const nextChildren = wip.pendingProps;
+	reconileChildren(wip, nextChildren);
+	return wip.child;
+}
 
 function updateFunctionComponent(wip: FiberNode) {
 	// renderWithHooks方法就是执行函数组件wip的方法
