@@ -96,7 +96,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 
 		// 根据element创建Fiber
 		let fiber;
-		if (element.type === REACT_ELEMENT_TYPE) {
+		if (element.type === REACT_FRAGMENT_TYPE) {
 			fiber = createFiberFromFragment(element.props.children, key);
 		} else {
 			fiber = createFiberFromElement(element);
@@ -156,7 +156,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		const existingChildren: ExistingChildren = new Map();
 		// currentFiberChild是旧的fiberNode他的结构是通过sibling这个来保存兄弟节点直接的关系，而newChild则是数组
 		let current = currentFiberChild;
-		// 遍历保存到Map对象中
+		// 遍历将FiberNode原本的链表形式保存到Map对象中
 		while (current !== null) {
 			// 如果存在key就有key最为键没有就用下标
 			const keyToUse = current.key !== null ? current.key : current.index;
@@ -223,6 +223,14 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		return firstNewFiber;
 	}
 
+	/**
+	 * 从existingChildren的Map中判断是否存在可复用,不可复用则创建一个新的FiberNode返回同时删除existingChildren中可复用的的FiberNode
+	 * @param returnFiber
+	 * @param existingChildren
+	 * @param index
+	 * @param element 当结构为<ul><li>a</li><li>b</li>{arr}</ul>, element存在为数组的情况
+	 * @returns
+	 */
 	function updateFromMap(
 		returnFiber: FiberNode,
 		existingChildren: ExistingChildren,
@@ -231,17 +239,17 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 	): FiberNode | null {
 		// 如果element中没有key就是index
 		const keyToUse = element.key !== null ? element.key : index;
-		// 从Map中找到最有的Fiber
-		const before = existingChildren.get(keyToUse);
-
+		// 从Map中找到原有的Fiber
+		let before;
 		// 如果是textNode
 		if (typeof element === 'string' || typeof element === 'number') {
+			before = existingChildren.get(index);
 			// HostText
 			if (before) {
 				// 如果fiber的类型是HostText证明是文本类型可以复用
 				if (before.tag === HostText) {
 					// 注意这里的delete是Map中的删除，从Map中删除这个信息，并不是添加删除的标记
-					existingChildren.delete(keyToUse);
+					existingChildren.delete(index);
 					// 返回复用的的fiber节点
 					return useFiber(before, { content: element + '' });
 				}
@@ -250,14 +258,29 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 
 		// ReactElement
 		if (typeof element === 'object' && element !== null) {
+			// 处理element为数组的情况
 			if (Array.isArray(element)) {
-				return updateFragment(returnFiber, before, element, keyToUse, existingChildren);
+				// 处理Fragment
+				/**
+				 * element可能还是array 考虑如下，其中list是个array：
+				 * <ul>
+				 * 	<li></li>
+				 * 	{list}
+				 * </ul>
+				 * 这种情况我们应该视element为Fragment
+				 */
+				before = existingChildren.get(index);
+				// 通过updateFragment调用之后返回出去的就是Fragment类型的FiberNode节点
+				return updateFragment(returnFiber, before, element, index, existingChildren);
 			}
 
+			// 单一element节点
+			before = existingChildren.get(keyToUse);
+			// 处理element为单个节点的情况
 			switch (element.$$typeof) {
 				case REACT_ELEMENT_TYPE:
 					if (element.type === REACT_FRAGMENT_TYPE) {
-						return updateFragment(returnFiber, before, element, keyToUse, existingChildren);
+						return updateFragment(returnFiber, before, element, index, existingChildren);
 					}
 					// element是标签节点
 					if (before) {
@@ -290,17 +313,20 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		newChild?: any
 	) {
 		// 判断下Fragment
+		// 对于类似 <ul><><li/><li/></></ul> 这样内部直接使用<>作为Fragment的情况
 		const isUnkeyedTopLevelFragment =
 			typeof newChild === 'object' &&
 			newChild !== null &&
 			newChild.type === REACT_FRAGMENT_TYPE &&
 			newChild.key === null;
 
+		// 是否是Fragment
 		if (isUnkeyedTopLevelFragment) {
+			// 是的话往下取一层
 			newChild = newChild?.props?.children;
 		}
 
-		// 判断当前ReactElementType的类型,这里组件类型跟普通节点类型的$$typeof都是一样的都等于REACT_ELEMENT_TYPE
+		// $$typeof除了文本节点不存在以外剩下的不管是组件还是普通节点或者是Fragment都为REACT_ELEMENT_TYPE
 		if (typeof newChild === 'object' && newChild !== null) {
 			switch (newChild.$$typeof) {
 				case REACT_ELEMENT_TYPE:
@@ -344,6 +370,15 @@ function useFiber(fiber: FiberNode, pendingProps: Props): FiberNode {
 	return clone;
 }
 
+/**
+ * 判断Fragment是否可复用，不可复用生成新的Fragment的FiberNode节点，并关联父级
+ * @param returnFiber 父节点的FiberNode
+ * @param current 旧得FiberNode首次加载为空
+ * @param elements <ul><li>a</li><li>b</li>{arr}</ul>, element为数组的情况
+ * @param key keyToUse存在key的情况下为key，否则为下标，当arr为数组的情况下，我们是将其看成为Fragment节点所以key为undefined
+ * @param existingChildren 待处理的旧节点Map集合
+ * @returns
+ */
 function updateFragment(
 	returnFiber: FiberNode,
 	current: FiberNode | undefined,
@@ -352,9 +387,12 @@ function updateFragment(
 	existingChildren: ExistingChildren
 ) {
 	let fiber;
+	// 上一个节点不存在，或者不为Fragment类型
 	if (!current || current.tag !== Fragment) {
+		// 创建一个Fragment类型的FiberNode节点
 		fiber = createFiberFromFragment(elements, key);
 	} else {
+		// 复用节点
 		existingChildren.delete(key);
 		fiber = useFiber(current, elements);
 	}

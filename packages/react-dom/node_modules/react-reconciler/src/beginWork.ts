@@ -1,10 +1,9 @@
 import { ReactElementType } from 'shared/ReactTypes';
 import { FiberNode } from './fiber';
 import { UpdateQueue, processUpdateQueue } from './updateQueue';
-import { FunctionComponent, HostComponent, HostRoot, HostText } from './workTags';
+import { FunctionComponent, HostComponent, HostRoot, HostText, Fragment } from './workTags';
 import { mountChildFibers, reconcileChildFibers } from './childFibers';
 import { renderWithHooks } from './fiberHooks';
-import { Fragment } from 'react';
 
 // 递归中的递阶段
 // beginWork的工作流程
@@ -66,6 +65,7 @@ function updateHostRoot(wip: FiberNode) {
 }
 
 function updateHostComponent(wip: FiberNode) {
+	debugger;
 	const nextProps = wip.pendingProps;
 	const nextChildren = nextProps.children;
 	reconileChildren(wip, nextChildren);

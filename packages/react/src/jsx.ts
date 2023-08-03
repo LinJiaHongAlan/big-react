@@ -1,4 +1,4 @@
-import { REACT_ELEMENT_TYPE } from 'shared/ReactSymbols';
+import { REACT_ELEMENT_TYPE, REACT_FRAGMENT_TYPE } from 'shared/ReactSymbols';
 import { Type, Key, Ref, Props, ReactElementType, ElementType } from 'shared/ReactTypes';
 
 // ReactElement
@@ -61,12 +61,18 @@ export const jsx = (type: ElementType, config: any, ...maybeChildren: any) => {
 	return ReactElement(type, key, ref, props);
 };
 
-export const Fragment = REACT_ELEMENT_TYPE;
+export const Fragment = REACT_FRAGMENT_TYPE;
 
-export const jsxDEV = (type: ElementType, config: any, key: Key) => {
-	// 特殊处理key: Key = null;
+export const jsxDEV = (type: ElementType, config: any, maybeKey: Key) => {
 	const props: Props = {};
 	let ref: Ref = null;
+
+	// key的默认值是null
+	let key = null;
+	if (maybeKey !== undefined) {
+		// 格式化为字符串
+		key = '' + maybeKey;
+	}
 
 	// 处理config
 	for (const prop in config) {
