@@ -32,7 +32,9 @@ export const beginWork = (wip: FiberNode) => {
 };
 
 function updateFragment(wip: FiberNode) {
+	// 在Fragment中pendingProps就是被包裹的子节点，在childFiber.ts中updateFragment方法中调用createFiberFromFragment产生的Fragment类型的节点
 	const nextChildren = wip.pendingProps;
+	// 拿到节点之后就会继续往下执行
 	reconileChildren(wip, nextChildren);
 	return wip.child;
 }
@@ -65,7 +67,6 @@ function updateHostRoot(wip: FiberNode) {
 }
 
 function updateHostComponent(wip: FiberNode) {
-	debugger;
 	const nextProps = wip.pendingProps;
 	const nextChildren = nextProps.children;
 	reconileChildren(wip, nextChildren);

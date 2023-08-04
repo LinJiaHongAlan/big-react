@@ -28,19 +28,28 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		}
 		const deletions = returnFiber.deletions;
 		if (deletions === null) {
+			// 将被移除的子节点
 			returnFiber.deletions = [childToDelete];
+			// 父节点中添加移除标记
 			returnFiber.flags |= ChildDeletion;
 		} else {
 			returnFiber.deletions?.push(childToDelete);
 		}
 	}
 
-	// 标记删除的方法
+	/**
+	 * 标记删除的方法
+	 * @param returnFiber 父节点
+	 * @param currentFirstChild 将被删除的子节点
+	 * @returns
+	 */
 	function deleteRemainingChildren(returnFiber: FiberNode, currentFirstChild: FiberNode | null) {
+		// 是否追踪副作用
 		if (!shouldTrackEffects) {
 			return;
 		}
 		let childToDelete = currentFirstChild;
+		// 循环移除兄弟节点
 		while (childToDelete != null) {
 			deleteChild(returnFiber, childToDelete);
 			childToDelete = childToDelete.sibling;
@@ -271,6 +280,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 				 */
 				before = existingChildren.get(index);
 				// 通过updateFragment调用之后返回出去的就是Fragment类型的FiberNode节点
+				// 如果element是数组的情况下就会返回一个Fragment类型的FiberNode，在begin阶段中就会往下遍历最终执行到这个Fragment类型的节点
 				return updateFragment(returnFiber, before, element, index, existingChildren);
 			}
 
