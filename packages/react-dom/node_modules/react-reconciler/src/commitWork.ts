@@ -69,6 +69,12 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode) => {
 	}
 };
 
+/**
+ * 当出现<><div>1</div><div>2</div></>这种情况的时候由于Fragment不是一个真实存在的节点所以不能用来执行removeDom的操作
+ * 考虑删除Fragment后，子树的根Host节点可能存在多个
+ * @param childrenToDelete
+ * @param unmountFiber
+ */
 function recordHostChildrenToDelete(childrenToDelete: FiberNode[], unmountFiber: FiberNode) {
 	// 1.找到第一个root host节点
 	const lastOne = childrenToDelete[childrenToDelete.length - 1];
@@ -77,6 +83,7 @@ function recordHostChildrenToDelete(childrenToDelete: FiberNode[], unmountFiber:
 	} else {
 		let node = lastOne.sibling;
 		while (node !== null) {
+			// 是否与第一个被收集的节点是兄弟节点，是的话一并添加到childrenToDelete待删除
 			if (unmountFiber === node) {
 				childrenToDelete.push(unmountFiber);
 			}
@@ -91,7 +98,16 @@ function commitDeletion(childToDelete: FiberNode) {
 	const rootChildrenToDelete: FiberNode[] = [];
 
 	// 递归子树
-	commitNestedComponent(childToDelete, (unmountFiber) => {
+	commitNestedUnmounts(childToDelete, (unmountFiber) => {
+		// 当前方法会递归节点childToDelete下所有的子节点
+		// 当出现 <div>
+		//   <>
+		//      <p>xxx</p>
+		//      <p>yyy</p>
+		//   </>
+		// </div> 的时候由于<></>不是一个真实的节点所以不能添加到rootChildrenToDelete中
+		// Fragment节点在当前switch中不会被处理,所以当childToDelete节点为Fragment的时候第一个被处理的节点是Fragment的非Fragment类型的子节点
+		// 考虑删除Fragment后，子树的根Host节点可能存在多个,我们需要recordHostChildrenToDelete方法来收集第一个节点有可能存在多个节点的可能
 		switch (unmountFiber.tag) {
 			case HostComponent:
 				recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber);
@@ -103,11 +119,6 @@ function commitDeletion(childToDelete: FiberNode) {
 			case FunctionComponent:
 				// TODO useEffect unmount的处理
 				return;
-			default:
-				if (__DEV__) {
-					console.warn('未处理的unmount类型', unmountFiber);
-				}
-				break;
 		}
 	});
 
@@ -129,7 +140,7 @@ function commitDeletion(childToDelete: FiberNode) {
  * @param root 接收一个递归子树的根节点
  * @param onCommitUnmount 接收到的当前点递归的回调函数
  */
-function commitNestedComponent(root: FiberNode, onCommitUnmount: (fiber: FiberNode) => void) {
+function commitNestedUnmounts(root: FiberNode, onCommitUnmount: (fiber: FiberNode) => void) {
 	let node = root;
 	while (true) {
 		onCommitUnmount(node);
