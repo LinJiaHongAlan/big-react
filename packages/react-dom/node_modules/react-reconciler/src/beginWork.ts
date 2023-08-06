@@ -9,17 +9,17 @@ import { renderWithHooks } from './fiberHooks';
 // beginWork的工作流程
 // 1.计算状态的最新值
 // 2.创造子fiberNode
-export const beginWork = (wip: FiberNode) => {
+export const beginWork = (wip: FiberNode, renderLane: Lane) => {
 	// 比较，返回子fiberNode
 	switch (wip.tag) {
 		case HostRoot:
-			return updateHostRoot(wip);
+			return updateHostRoot(wip, renderLane);
 		case HostComponent:
 			return updateHostComponent(wip);
 		case HostText:
 			return null;
 		case FunctionComponent:
-			return updateFunctionComponent(wip);
+			return updateFunctionComponent(wip, renderLane);
 		case Fragment:
 			return updateFragment(wip);
 		default:
@@ -39,15 +39,15 @@ function updateFragment(wip: FiberNode) {
 	return wip.child;
 }
 
-function updateFunctionComponent(wip: FiberNode) {
+function updateFunctionComponent(wip: FiberNode, renderLane: Lane) {
 	// renderWithHooks方法就是执行函数组件wip的方法
 	// 当执行完内部的函数方法之后，就会再次调用到useState,那么就会走到update生命周期的hook,会消费上一次dispatch传入的action,最终返回函数组件内部的返回的ReactElementType
-	const nextChildren = renderWithHooks(wip);
+	const nextChildren = renderWithHooks(wip, renderLane);
 	reconileChildren(wip, nextChildren);
 	return wip.child;
 }
 
-function updateHostRoot(wip: FiberNode) {
+function updateHostRoot(wip: FiberNode, renderLane: Lane) {
 	const baseState = wip.memoizedState;
 	const updateQueue = wip.updateQueue as UpdateQueue<Element>;
 	// 取出的pending就是Update对象
@@ -55,7 +55,7 @@ function updateHostRoot(wip: FiberNode) {
 	const pending = updateQueue.shared.pending;
 	// 清空原有对象中的pending
 	updateQueue.shared.pending = null;
-	const { memoizedState } = processUpdateQueue(baseState, pending);
+	const { memoizedState } = processUpdateQueue(baseState, pending, renderLane);
 	// 从目前上看这里是拿到了ReactElementType对象并且保存到memoizedState
 	wip.memoizedState = memoizedState;
 	// 这是更新后的ReactElementType

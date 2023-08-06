@@ -1,10 +1,13 @@
 import { Dispatch } from 'react/src/currentDispatcher';
 import { Action } from 'shared/ReactTypes';
+import { Lane } from './fiberLanes';
 
 // Update是代表更新的数据结构
 export interface Update<State> {
 	// this.state(action就是接收的这个action)
 	action: Action<State>;
+	lane: Lane;
+	next: Update<any> | null;
 }
 
 // 消费Update的数据结构，一个UpdateQueue里面有个shared.pending 指向Update
@@ -16,10 +19,12 @@ export interface UpdateQueue<State> {
 }
 
 // 实现创建update实例的方法createUpdate
-export const createUpdate = <State>(action: Action<State>): Update<State> => {
+export const createUpdate = <State>(action: Action<State>, lane: Lane): Update<State> => {
 	// 返回update的实例
 	return {
-		action
+		action,
+		lane,
+		next: null
 	};
 };
 
@@ -36,6 +41,17 @@ export const createUpdateQueue = <State>() => {
 
 // 往UpdateQueue里增加Update
 export const enqueueUpdate = <State>(updateQueue: UpdateQueue<State>, update: Update<State>) => {
+	const pending = updateQueue.shared.pending;
+	// 这里会形成一个环状链表
+	if (pending === null) {
+		// a -> a
+		update.next = update;
+	} else {
+		// pending = b -> a -> b
+		// pending = c -> a -> b -> c
+		update.next = pending.next;
+		pending.next = update;
+	}
 	updateQueue.shared.pending = update;
 };
 
@@ -44,21 +60,37 @@ export const enqueueUpdate = <State>(updateQueue: UpdateQueue<State>, update: Up
 // 返回值是全新的状态memoizeState
 export const processUpdateQueue = <State>(
 	baseState: State,
-	pendingUpdate: Update<State> | null
+	pendingUpdate: Update<State> | null,
+	renderLane: Lane
 ): { memoizedState: State } => {
 	// ReturnType是获取函数放回值的类型
 	const result: ReturnType<typeof processUpdateQueue<State>> = {
 		memoizedState: baseState
 	};
 	if (pendingUpdate !== null) {
-		// baseState 1 update (x) => 4x -> memoizedState 4
-		const action = pendingUpdate?.action;
-		if (action instanceof Function) {
-			result.memoizedState = action(baseState);
-		} else {
-			// baseState 1 update 2 -> memoizedState 2
-			result.memoizedState = action;
-		}
+		// 第一个update,因为是环状链表
+		const first = pendingUpdate.next;
+		let pending = pendingUpdate.next as Update<any>;
+		// 循环一圈刚好就是遍历了一整条链表
+		do {
+			const updateLane = pending.lane;
+			if (updateLane === renderLane) {
+				// baseState 1 update (x) => 4x -> memoizedState 4
+				const action = pendingUpdate?.action;
+				if (action instanceof Function) {
+					baseState = action(baseState);
+				} else {
+					// baseState 1 update 2 -> memoizedState 2
+					baseState = action;
+				}
+			} else {
+				if (__DEV__) {
+					console.error('不应该进入updateLane !== renderLane这个逻辑');
+				}
+			}
+			pending = pending?.next as Update<any>;
+		} while (pending !== first);
 	}
+	result.memoizedState = baseState;
 	return result;
 };
