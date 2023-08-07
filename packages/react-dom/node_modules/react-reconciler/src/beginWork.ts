@@ -4,6 +4,7 @@ import { UpdateQueue, processUpdateQueue } from './updateQueue';
 import { FunctionComponent, HostComponent, HostRoot, HostText, Fragment } from './workTags';
 import { mountChildFibers, reconcileChildFibers } from './childFibers';
 import { renderWithHooks } from './fiberHooks';
+import { Lane } from './fiberLanes';
 
 // 递归中的递阶段
 // beginWork的工作流程

@@ -53,7 +53,7 @@ function ensureRootIsScheduled(root: fiberRootNode) {
 		if (__DEV__) {
 			console.log('在微任务中调度，优先级：', updateLane);
 		}
-		// 没触发一次更新就会多一次回调
+		// scheduleSyncCallback是收集函数方法得函数,每触发一次更新就会多一次回调
 		// [performSyncWorkOnRoot, performSyncWorkOnRoot, performSyncWorkOnRoot]
 		scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root, updateLane));
 		// 执行3次
