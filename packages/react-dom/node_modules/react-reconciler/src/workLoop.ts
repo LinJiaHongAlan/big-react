@@ -56,7 +56,8 @@ function ensureRootIsScheduled(root: fiberRootNode) {
 		// scheduleSyncCallback是收集函数方法得函数,每触发一次更新就会多一次回调
 		// [performSyncWorkOnRoot, performSyncWorkOnRoot, performSyncWorkOnRoot]
 		scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root, updateLane));
-		// 执行3次
+		// 执行3次scheduleMicroTask方法是异步任务flushSyncCallbacks是异步任务的回调函数
+		// 这意味着在同步执行当前函数的时候flushSyncCallbacks方法不会执行当执行的时候意味着同步任务已经添加完毕
 		scheduleMicroTask(flushSyncCallbacks);
 	} else {
 		// 其他优先级 用宏任务调度

@@ -9,6 +9,9 @@ export function scheduleSyncCallback(callback: (...args: any) => void) {
 	}
 }
 
+/**
+ * 同步任务回调函数，开始调用当前函数的时候意味着syncQueue的所有调度任务已经添加完毕
+ */
 export function flushSyncCallbacks() {
 	if (!isFlushingSyncQueue && syncQueue) {
 		isFlushingSyncQueue = true;
