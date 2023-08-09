@@ -5,9 +5,15 @@ function App() {
 	const [num, setNum] = useState(0);
 
 	function updateNum() {
-		setNum(2);
-		setNum(5);
-		setNum(6);
+		setNum((num) => {
+			return num + 1;
+		});
+		setNum((num) => {
+			return num + 1;
+		});
+		setNum((num) => {
+			return num + 1;
+		});
 	}
 
 	return (
