@@ -85,6 +85,7 @@ export function markUpdateFromFiberToRoot(fiber: FiberNode) {
 
 // 从跟节点开始更新
 function performSyncWorkOnRoot(root: fiberRootNode, lane: Lane) {
+	console.log('jntm');
 	const nextLane = getHighesPriorityLane(root.pendingLanes);
 	if (nextLane !== SyncLane) {
 		// 其他比Synclane低的优先级
