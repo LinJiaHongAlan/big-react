@@ -178,11 +178,13 @@ function dispatchSetState<State>(
 	updateQueue: UpdateQueue<State>,
 	action: Action<State>
 ) {
+	// 返回SyncLane
 	const lane = requestUpdateLane();
 
-	// 创建一个update
+	// 创建一个update,将当前任务的优先级lane添加进去
 	const update = createUpdate(action, lane);
-	// 绑定update
+	// 绑定update,enqueueUpdate方法支持多次添加会形成一个环状链表的结构,但更新多次调用的时候updateQueue会形成一个链表
+	//
 	enqueueUpdate(updateQueue, update);
 	// 执行调度,会重新调用renderRoot
 	scheduleUpdateOnFiber(fiber, lane);

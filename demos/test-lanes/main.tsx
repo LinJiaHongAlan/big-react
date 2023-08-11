@@ -8,6 +8,8 @@ function App() {
 		setNum(2);
 		setNum(5);
 		setNum(6);
+		setNum(7);
+		setNum(8);
 	}
 
 	return (

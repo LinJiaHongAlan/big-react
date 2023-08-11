@@ -56,6 +56,7 @@ function updateHostRoot(wip: FiberNode, renderLane: Lane) {
 	const pending = updateQueue.shared.pending;
 	// 清空原有对象中的pending
 	updateQueue.shared.pending = null;
+	// renderLane是本地消费的优先级，会循环updateQueue中的所有Update优先级相同的Update消费并更新baseState
 	const { memoizedState } = processUpdateQueue(baseState, pending, renderLane);
 	// 从目前上看这里是拿到了ReactElementType对象并且保存到memoizedState
 	wip.memoizedState = memoizedState;

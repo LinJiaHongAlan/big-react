@@ -36,6 +36,7 @@ export function scheduleUpdateOnFiber(fiber: FiberNode, lane: Lane) {
 	// TODO 调度功能
 	// 拿到根节点fiberRootNode
 	const root = markUpdateFromFiberToRoot(fiber);
+	// 添加优先级（相同优先级更新不会引起变化）
 	markRootUpdateed(root, lane);
 	// 调用renderRoot开始跟新
 	ensureRootIsScheduled(root);
@@ -53,17 +54,19 @@ function ensureRootIsScheduled(root: fiberRootNode) {
 		if (__DEV__) {
 			console.log('在微任务中调度，优先级：', updateLane);
 		}
-		// scheduleSyncCallback是收集函数方法得函数,每触发一次更新就会多一次回调
+		// scheduleSyncCallback是收集函数方法的函数想数组syncQueue添加一个performSyncWorkOnRoot
 		// [performSyncWorkOnRoot, performSyncWorkOnRoot, performSyncWorkOnRoot]
 		scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root, updateLane));
-		// 执行3次scheduleMicroTask方法是异步任务flushSyncCallbacks是异步任务的回调函数
-		// 这意味着在同步执行当前函数的时候flushSyncCallbacks方法不会执行当执行的时候意味着同步任务已经添加完毕
+		// scheduleMicroTask是异步任务，flushSyncCallbacks是消费syncQueue的函数
+		// 因此performSyncWorkOnRoot执行的次数也是跟当前函数执行的次数是一样的
+		// 也就是说flushSyncCallbacks方法执行意味着performSyncWorkOnRoot也会执行
 		scheduleMicroTask(flushSyncCallbacks);
 	} else {
 		// 其他优先级 用宏任务调度
 	}
 }
 
+// 添加优先级
 function markRootUpdateed(root: fiberRootNode, lane: Lane) {
 	// mergeLanes是按位或操作，合并集合
 	root.pendingLanes = mergeLanes(root.pendingLanes, lane);
@@ -83,9 +86,17 @@ export function markUpdateFromFiberToRoot(fiber: FiberNode) {
 	return null;
 }
 
-// 从跟节点开始更新
+/**
+ * 从跟节点开始更新
+ * @param root 根节点fiberRootNode
+ * @param lane 优先级（暂时还不清楚跟nextLane的区别）
+ * @returns
+ */
 function performSyncWorkOnRoot(root: fiberRootNode, lane: Lane) {
-	console.log('jntm');
+	console.log('performSyncWorkOnRoot');
+	// 获取下一个节点,这里开始执行调度挂载,当执行到commit阶段的时候会调用markRootFinished将当前最高的优先级去除掉
+	// 去除掉之后这里再次获取就不会获取到重复的优先级没有的话就会中断后面的执行
+	// 由于performSyncWorkOnRoot是异步所有在前面的时候，会执行所有的同步调度ensureRootIsScheduled那么同个优先级的update也都会被添加进去
 	const nextLane = getHighesPriorityLane(root.pendingLanes);
 	if (nextLane !== SyncLane) {
 		// 其他比Synclane低的优先级
@@ -144,7 +155,8 @@ function commitRoot(root: fiberRootNode) {
 	root.finishedWork = null;
 	root.finishedLane = NoLane;
 
-	// 移除
+	// 移除优先级,当调用performSyncWorkOnRoot的时候,经过begin跟complete阶段最终会到commitRoot
+	// 移除之后后续的performSyncWorkOnRoot这不会继续经过这3个阶段
 	markRootFinished(root, lane);
 
 	// 判断是否存在3个子阶段需要执行得到操作
