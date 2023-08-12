@@ -17,6 +17,7 @@ export function createContainer(container: Container) {
 // 执行render方法后内部调用的api
 export function updateContainer(element: ReactElementType | null, root: fiberRootNode) {
 	const hostRootFiber = root.current;
+	// 创建一个优先级
 	const lane = requestUpdateLane();
 	// 创建一个新的额Update
 	// element也就是render传进来的ReactElementType

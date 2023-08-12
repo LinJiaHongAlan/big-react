@@ -80,6 +80,8 @@ function updateState<State>(): [State, Dispatch<State>] {
 	// 实现updateState中[计算新的state的逻辑]
 	const queue = hook.updateQueue as UpdateQueue<State>;
 	const pending = queue.shared.pending;
+	// queue.shared.pending现在是链表结构，需要置空
+	queue.shared.pending = null;
 
 	if (pending !== null) {
 		// 如果上一个组件有调用dispatch更改值的话，那么pending也就是传入的上一个调用dispatch的时候添加进得update
@@ -178,11 +180,13 @@ function dispatchSetState<State>(
 	updateQueue: UpdateQueue<State>,
 	action: Action<State>
 ) {
+	// 返回SyncLane
 	const lane = requestUpdateLane();
 
-	// 创建一个update
+	// 创建一个update,将当前任务的优先级lane添加进去
 	const update = createUpdate(action, lane);
-	// 绑定update
+	// 绑定update,enqueueUpdate方法支持多次添加会形成一个环状链表的结构,但更新多次调用的时候updateQueue会形成一个链表
+	//
 	enqueueUpdate(updateQueue, update);
 	// 执行调度,会重新调用renderRoot
 	scheduleUpdateOnFiber(fiber, lane);

@@ -55,9 +55,10 @@ export const enqueueUpdate = <State>(updateQueue: UpdateQueue<State>, update: Up
 	updateQueue.shared.pending = update;
 };
 
-// enqueueUpdate消费Updated的方法
-// 接收一个初始的状态baseState以及要消费的UpdatependingUpdate
+// enqueueUpdate消费Update的方法
+// 接收一个初始的状态baseState以及要消费的Update pendingUpdate
 // 返回值是全新的状态memoizeState
+// Update为一个链表.next就是下一个Update
 export const processUpdateQueue = <State>(
 	baseState: State,
 	pendingUpdate: Update<State> | null,
@@ -71,10 +72,13 @@ export const processUpdateQueue = <State>(
 		// 第一个update,因为是环状链表
 		const first = pendingUpdate.next;
 		let pending = pendingUpdate.next as Update<any>;
-		// 循环一圈刚好就是遍历了一整条链表
+		// pending !== first循环一圈刚好就是遍历了一整条链表
 		do {
+			// 获取当前Update的优先级
 			const updateLane = pending.lane;
+			// 判断当前消费的优先级是否相等
 			if (updateLane === renderLane) {
+				// 去除update的action循环更新得出最新的baseState
 				// baseState 1 update (x) => 4x -> memoizedState 4
 				const action = pendingUpdate?.action;
 				if (action instanceof Function) {
@@ -91,6 +95,7 @@ export const processUpdateQueue = <State>(
 			pending = pending?.next as Update<any>;
 		} while (pending !== first);
 	}
+	// 从新赋值回给memoizedState
 	result.memoizedState = baseState;
 	return result;
 };
