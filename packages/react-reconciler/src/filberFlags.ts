@@ -15,4 +15,5 @@ export const PassiveEffect = 0b0001000;
 // 代表了mutation阶段需要执行的操作
 export const MutationMask = Placement | Update | ChildDeletion;
 
+// 代表了本次更新要出发useEffect
 export const PassiveMask = PassiveEffect | ChildDeletion;

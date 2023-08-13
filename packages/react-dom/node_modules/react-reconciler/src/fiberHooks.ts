@@ -13,7 +13,7 @@ import {
 import { Action } from 'shared/ReactTypes';
 import { scheduleUpdateOnFiber } from './workLoop';
 import { Lane, NoLane, requestUpdateLane } from './fiberLanes';
-import { Passive } from './hookEffectTags';
+import { HookHasEffect, Passive } from './hookEffectTags';
 
 const { currentDispatcher } = internals;
 
@@ -51,6 +51,8 @@ export function renderWithHooks(wip: FiberNode, lane: Lane) {
 	currentlyRenderingFiber = wip;
 	// memoizedState这里是指向hook的链表
 	wip.memoizedState = null;
+	// 重置effect链表
+	wip.updateQueue = null;
 	// 接下来执行的时候我们需要创建这个链表
 	renderLane = lane;
 
@@ -79,20 +81,66 @@ export function renderWithHooks(wip: FiberNode, lane: Lane) {
 
 // 挂载时的hooks集合
 const HooksDispatcherOnMount: DisPatcher = {
-	useState: mountState
+	useState: mountState,
+	useEffect: mountEffect
 };
 
 const HooksDispatcherOnUpdate: DisPatcher = {
-	useState: updateState
+	useState: updateState,
+	useEffect: updateEffect
 };
 
-function mountEffect(create: EffectCallback | void, deps: EffectDeps) {
-	// 这个是函数组件第一个调用的时候生成的hooks链表，同时会返回当前的hook对象
+/**
+ * 挂载的时候的useEffect方法
+ * @param create useEffect第一个参数也就是回调函数
+ * @param deps 依赖项
+ */
+function mountEffect(create: EffectCallback | void, deps: EffectDeps | void) {
+	// mountWorkInProgresHook这个方法就是生成一个hook对象，并且在hook链表中多添加一个
 	const hook = mountWorkInProgresHook();
 	const nextDeps = deps === undefined ? null : deps;
-	// 这就代表mount的时候需要处理副作用
+	// useEffect在初始化的时候需要执行create的回调函数所以我们要往flags添加一个PassiveEffect标记
 	(currentlyRenderingFiber as FiberNode).flags |= PassiveEffect;
+	// 往hook添加一个memoizedState,memoizedState在不同的hook中数据结构都不同，在useState中保存的是数据的状态
+	// pushEffect是在useEffect的hook.memoizedState保存一个next，指向下一个useEffect的hook，形成一个环状链表
 	hook.memoizedState = pushEffect(Passive | PassiveEffect, create, undefined, nextDeps);
+}
+
+function updateEffect(create: EffectCallback | void, deps: EffectDeps | void) {
+	// 这个是函数组件第一个调用的时候生成的hooks链表，同时会返回当前的hook对象
+	const hook = updateWorkInProgresHook();
+	const nextDeps = deps === undefined ? null : deps;
+	let destroy: EffectCallback | void;
+
+	if (currentHook !== null) {
+		const prevEffect = currentHook.memoizedState as Effect;
+		destroy = prevEffect.destroy;
+		if (nextDeps !== null) {
+			// 浅比较依赖
+			const prevDeps = prevEffect.deps;
+			if (areHookInputsEqual(nextDeps, prevDeps)) {
+				// 依赖没有变
+				hook.memoizedState = pushEffect(Passive, create, destroy, nextDeps);
+				return;
+			}
+		}
+		// 钱比较后不相等
+		(currentlyRenderingFiber as FiberNode).flags |= PassiveEffect;
+		hook.memoizedState = pushEffect(Passive | HookHasEffect, create, destroy, nextDeps);
+	}
+}
+
+function areHookInputsEqual(nextDeps: EffectDeps, prevDeps: EffectDeps) {
+	if (prevDeps === null || nextDeps === null) {
+		return false;
+	}
+	for (let i = 0; i < prevDeps.length && i < nextDeps.length; i++) {
+		if (Object.is(prevDeps[i], nextDeps[i])) {
+			continue;
+		}
+		return false;
+	}
+	return true;
 }
 
 function pushEffect(

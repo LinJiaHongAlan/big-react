@@ -15,6 +15,7 @@ importers:
       '@rollup/plugin-typescript': ^11.1.1
       '@types/react': ^18.0.37
       '@types/react-dom': ^18.0.11
+      '@types/scheduler': ^0.16.3
       '@typescript-eslint/eslint-plugin': ^5.59.0
       '@typescript-eslint/parser': ^5.59.0
       '@vitejs/plugin-react': ^4.0.0
@@ -32,8 +33,11 @@ importers:
       rimraf: ^5.0.0
       rollup: ^3.21.0
       rollup-plugin-generate-package-json: ^3.2.0
+      scheduler: ^0.23.0
       typescript: ^5.0.4
       vite: ^4.3.9
+    dependencies:
+      scheduler: registry.npmmirror.com/scheduler/0.23.0
     devDependencies:
       '@babel/core': registry.npmmirror.com/@babel/core/7.22.5
       '@babel/plugin-transform-react-jsx': registry.npmmirror.com/@babel/plugin-transform-react-jsx/7.22.5_@babel+core@7.22.5
@@ -46,6 +50,7 @@ importers:
       '@rollup/plugin-typescript': registry.npmmirror.com/@rollup/plugin-typescript/11.1.1_mjeapf7d7hsdiibr254b7iwsba
       '@types/react': registry.npmmirror.com/@types/react/18.2.8
       '@types/react-dom': registry.npmmirror.com/@types/react-dom/18.2.4
+      '@types/scheduler': registry.npmmirror.com/@types/scheduler/0.16.3
       '@typescript-eslint/eslint-plugin': 5.59.0_chh3ljgpke5ydgcjpmkmu4hz5q
       '@typescript-eslint/parser': 5.59.0_iacogk7kkaymxepzhgcbytyi7q
       '@vitejs/plugin-react': registry.npmmirror.com/@vitejs/plugin-react/4.0.0_vite@4.3.9
@@ -6207,7 +6212,6 @@ packages:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/js-tokens/-/js-tokens-4.0.0.tgz}
     name: js-tokens
     version: 4.0.0
-    dev: true
 
   registry.npmmirror.com/js-yaml/3.14.1:
     resolution: {integrity: sha512-okMH7OXXJ7YrN9Ok3/SXrnu4iX9yOk+25nqX4imS2npuvTYDmo/QEZoqwZkYaIDk3jVvBOTOIEgEhaLOynBS9g==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/js-yaml/-/js-yaml-3.14.1.tgz}
@@ -6335,6 +6339,15 @@ packages:
     name: lodash.debounce
     version: 4.0.8
     dev: true
+
+  registry.npmmirror.com/loose-envify/1.4.0:
+    resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/loose-envify/-/loose-envify-1.4.0.tgz}
+    name: loose-envify
+    version: 1.4.0
+    hasBin: true
+    dependencies:
+      js-tokens: registry.npmmirror.com/js-tokens/4.0.0
+    dev: false
 
   registry.npmmirror.com/lru-cache/5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/lru-cache/-/lru-cache-5.1.1.tgz}
@@ -6936,6 +6949,14 @@ packages:
     dependencies:
       xmlchars: registry.npmmirror.com/xmlchars/2.2.0
     dev: true
+
+  registry.npmmirror.com/scheduler/0.23.0:
+    resolution: {integrity: sha512-CtuThmgHNg7zIZWAXi3AsyIzA3n4xx7aNyjwC2VJldO2LMVDhFK+63xGqq6CsJH4rTAt6/M+N4GhZiDYPx9eUw==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/scheduler/-/scheduler-0.23.0.tgz}
+    name: scheduler
+    version: 0.23.0
+    dependencies:
+      loose-envify: registry.npmmirror.com/loose-envify/1.4.0
+    dev: false
 
   registry.npmmirror.com/semver/5.7.1:
     resolution: {integrity: sha512-sauaDf/PZdVgrLTNYHRtpXa1iRiKcaebiKQ1BJdpQlWH2lCvexQdX55snPFyK7QzpudqbCI0qXFfOasHdyNDGQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/semver/-/semver-5.7.1.tgz}

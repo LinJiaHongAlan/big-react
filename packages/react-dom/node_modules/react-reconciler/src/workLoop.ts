@@ -1,9 +1,14 @@
 // 这个是完整的工作循环的文件
 import { scheduleMicroTask } from 'hostConfig';
 import { beginWork } from './beginWork';
-import { commitMutationEffects } from './commitWork';
+import {
+	commitHookEffectListCreate,
+	commitHookEffectListDestroy,
+	commitHookEffectListUnmount,
+	commitMutationEffects
+} from './commitWork';
 import { completeWork } from './completeWork';
-import { FiberNode, createWorkInProgress, fiberRootNode } from './fiber';
+import { FiberNode, PendingPassiveEffects, createWorkInProgress, fiberRootNode } from './fiber';
 import {
 	Lane,
 	NoLane,
@@ -12,13 +17,20 @@ import {
 	markRootFinished,
 	mergeLanes
 } from './fiberLanes';
-import { MutationMask, NoFlags } from './filberFlags';
+import { MutationMask, NoFlags, PassiveMask } from './filberFlags';
 import { flushSyncCallbacks, scheduleSyncCallback } from './syncTaskQueue';
 import { HostRoot } from './workTags';
+// 安装的调度器
+import {
+	unstable_scheduleCallback as scheduleCallback,
+	unstable_NormalPriority as NormalPriority
+} from 'scheduler';
+import { HookHasEffect, Passive } from './hookEffectTags';
 
 // 我们这里需要一个全局的指针来指向当前工作的FiberNode
 let workInProgress: FiberNode | null = null;
 let wipRootRenderLane: Lane = NoLane;
+let rootDoesHasPassiveEffects = false;
 
 // 初始化workInProgress
 function prepareFreshStack(root: fiberRootNode, lane: Lane) {
@@ -158,6 +170,22 @@ function commitRoot(root: fiberRootNode) {
 	// 移除之后后续的performSyncWorkOnRoot这不会继续经过这3个阶段
 	markRootFinished(root, lane);
 
+	if (
+		(finishedWork.flags & PassiveMask) !== NoFlags ||
+		(finishedWork.subtreeFlags & PassiveMask) !== NoFlags
+	) {
+		if (!rootDoesHasPassiveEffects) {
+			rootDoesHasPassiveEffects = true;
+			// 调度副作用
+			// scheduleCallback是调度的方法，NormalPriority这个是优先级，这里可以理解为是setTimeOut方法
+			scheduleCallback(NormalPriority, () => {
+				// 执行副作用
+				flushPassiveEffects(root.pendingPassiveEffects);
+				return;
+			});
+		}
+	}
+
 	// 判断是否存在3个子阶段需要执行得到操作
 	// 需要判断root本身的flags以及root的subtreeFlags
 	// 这里是按位与操作subtreeHasEffect !== NoFlags标识存在子节点需要更新操作
@@ -167,13 +195,32 @@ function commitRoot(root: fiberRootNode) {
 	if (subtreeHasEffect || rootHasEffect) {
 		// beforeMutation
 		// mutation Placement
-		commitMutationEffects(finishedWork);
+		commitMutationEffects(finishedWork, root);
 		root.current = finishedWork;
 
 		// layout
 	} else {
 		root.current = finishedWork;
 	}
+	rootDoesHasPassiveEffects = false;
+	ensureRootIsScheduled(root);
+}
+
+function flushPassiveEffects(pendingPassiveEffects: PendingPassiveEffects) {
+	pendingPassiveEffects.unmount.forEach((effect) => {
+		commitHookEffectListUnmount(Passive, effect);
+	});
+	pendingPassiveEffects.unmount = [];
+
+	pendingPassiveEffects.update.forEach((effect) => {
+		commitHookEffectListDestroy(Passive | HookHasEffect, effect);
+	});
+
+	pendingPassiveEffects.update.forEach((effect) => {
+		commitHookEffectListCreate(Passive | HookHasEffect, effect);
+	});
+	pendingPassiveEffects.update = [];
+	flushSyncCallbacks();
 }
 
 function workLoop() {

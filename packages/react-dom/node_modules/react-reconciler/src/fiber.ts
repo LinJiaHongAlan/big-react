@@ -3,6 +3,7 @@ import { FunctionComponent, HostComponent, WorkTag, Fragment } from './workTags'
 import { Flags, NoFlags } from './filberFlags';
 import { Container } from 'hostConfig';
 import { Lane, Lanes, NoLane, NoLanes } from './fiberLanes';
+import { Effect } from './fiberHooks';
 
 /**
  * @tag 表示FiberNode是什么类型的节点
@@ -69,6 +70,11 @@ export class FiberNode {
 	}
 }
 
+export interface PendingPassiveEffects {
+	unmount: Effect[];
+	update: Effect[];
+}
+
 // 实现根节点fiberRootNode
 export class fiberRootNode {
 	// 宿主环境的dom挂载的节点
@@ -82,6 +88,7 @@ export class fiberRootNode {
 	pendingLanes: Lanes;
 	// 本次更新消费的Lane
 	finishedLane: Lane;
+	pendingPassiveEffects: PendingPassiveEffects;
 	constructor(container: Container, hostRootFiber: FiberNode) {
 		this.container = container;
 		this.current = hostRootFiber;
@@ -89,6 +96,10 @@ export class fiberRootNode {
 		this.finishedWork = null;
 		this.finishedLane = NoLanes;
 		this.pendingLanes = NoLane;
+		this.pendingPassiveEffects = {
+			unmount: [],
+			update: []
+		};
 	}
 }
 
