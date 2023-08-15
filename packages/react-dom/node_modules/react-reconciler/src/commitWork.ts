@@ -95,13 +95,13 @@ function commitPassiveEffect(
 		fiber.tag !== FunctionComponent ||
 		(type === 'update' && fiber.flags & PassiveEffect) === NoFlags
 	) {
-		// 不是函数组件
+		// 不是函数组件,或者是不存在PassiveEffect标记的,都不处理
 		return;
 	}
 	const updateQueue = fiber.updateQueue as FCUpdateQueue<any>;
 	if (updateQueue !== null) {
 		if (updateQueue.lastEffect === null && __DEV__) {
-			console.error('当FC存在PassiveEffect flag时， 不应该不存在Effect');
+			console.error('当FC存在PassiveEffect flag时,不应该不存在Effect');
 		}
 		root.pendingPassiveEffects[type].push(updateQueue.lastEffect as Effect);
 	}

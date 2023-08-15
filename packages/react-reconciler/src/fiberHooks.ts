@@ -124,7 +124,7 @@ function updateEffect(create: EffectCallback | void, deps: EffectDeps | void) {
 				return;
 			}
 		}
-		// 钱比较后不相等
+		// 浅比较后不相等
 		(currentlyRenderingFiber as FiberNode).flags |= PassiveEffect;
 		hook.memoizedState = pushEffect(Passive | HookHasEffect, create, destroy, nextDeps);
 	}
@@ -143,6 +143,7 @@ function areHookInputsEqual(nextDeps: EffectDeps, prevDeps: EffectDeps) {
 	return true;
 }
 
+// 生成effect环形链表，并将环形链表保存到updateQueue的lastEffect中
 function pushEffect(
 	hookFlags: Flags,
 	create: EffectCallback | void,
@@ -156,10 +157,11 @@ function pushEffect(
 		deps,
 		next: null
 	};
+	// currentlyRenderingFiber是当前正在处理的FiberNode
 	const fiber = currentlyRenderingFiber as FiberNode;
-	const updateQueue = fiber.updateQueue as FCUpdateQueue<any>;
+	let updateQueue = fiber.updateQueue as FCUpdateQueue<any>;
 	if (updateQueue === null) {
-		const updateQueue = createFCUpdateQueue();
+		updateQueue = createFCUpdateQueue();
 		fiber.updateQueue = updateQueue;
 		effect.next = effect;
 		updateQueue.lastEffect = effect;
