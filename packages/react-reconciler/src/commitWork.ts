@@ -85,6 +85,13 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode, root: fiberRootNo
 	}
 };
 
+/**
+ * 收集effect方法
+ * @param fiber 当前的fiberNode
+ * @param root fiberRootNode
+ * @param type 时机类型
+ * @returns
+ */
 function commitPassiveEffect(
 	fiber: FiberNode,
 	root: fiberRootNode,
@@ -98,15 +105,23 @@ function commitPassiveEffect(
 		// 不是函数组件,或者是不存在PassiveEffect标记的,都不处理
 		return;
 	}
+	// 拿到当前fiber的updateQueue
 	const updateQueue = fiber.updateQueue as FCUpdateQueue<any>;
 	if (updateQueue !== null) {
 		if (updateQueue.lastEffect === null && __DEV__) {
 			console.error('当FC存在PassiveEffect flag时,不应该不存在Effect');
 		}
+		// 因为effect是一个环状链表并且保存在updateQueue中,updateQueue.lastEffect保存起来，后续再遍历这个环状链表就能拿到所有的effect
 		root.pendingPassiveEffects[type].push(updateQueue.lastEffect as Effect);
 	}
 }
 
+/**
+ * 遍历effect环状链表的方法
+ * @param flags
+ * @param lastEffect
+ * @param callback
+ */
 function commitHookEffectList(
 	flags: Flags,
 	lastEffect: Effect,
@@ -128,6 +143,7 @@ export function commitHookEffectListUnmount(flags: Flags, lastEffect: Effect) {
 		if (typeof destroy === 'function') {
 			destroy();
 		}
+		// 防止触发create,需要移除HookHasEffect
 		effect.tag &= ~HookHasEffect;
 	});
 }

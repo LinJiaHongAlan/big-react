@@ -143,7 +143,15 @@ function areHookInputsEqual(nextDeps: EffectDeps, prevDeps: EffectDeps) {
 	return true;
 }
 
-// 生成effect环形链表，并将环形链表保存到updateQueue的lastEffect中
+/**
+ * 生成effect环形链表，并将环形链表保存到updateQueue的lastEffect中
+ * 将updateQueue保存到当前的fiber中意味着在fiber对象可以拿到当前的整个环状链表
+ * @param hookFlags effect的类型(是否包含PassiveEffect)
+ * @param create 创建的回调函数
+ * @param destroy 销毁的回调函数
+ * @param deps 依赖项
+ * @returns 返回effect对象
+ */
 function pushEffect(
 	hookFlags: Flags,
 	create: EffectCallback | void,

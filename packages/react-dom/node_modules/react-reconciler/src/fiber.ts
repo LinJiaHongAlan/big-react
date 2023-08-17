@@ -88,6 +88,7 @@ export class fiberRootNode {
 	pendingLanes: Lanes;
 	// 本次更新消费的Lane
 	finishedLane: Lane;
+	// effect回调方法储存的地方，在commit阶段通过commitPassiveEffect去收集回调
 	pendingPassiveEffects: PendingPassiveEffects;
 	constructor(container: Container, hostRootFiber: FiberNode) {
 		this.container = container;

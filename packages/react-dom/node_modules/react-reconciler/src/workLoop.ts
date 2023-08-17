@@ -30,6 +30,7 @@ import { HookHasEffect, Passive } from './hookEffectTags';
 // 我们这里需要一个全局的指针来指向当前工作的FiberNode
 let workInProgress: FiberNode | null = null;
 let wipRootRenderLane: Lane = NoLane;
+// 定义这个变量用来阻止多次调用的情况
 let rootDoesHasPassiveEffects = false;
 
 // 初始化workInProgress
@@ -174,11 +175,15 @@ function commitRoot(root: fiberRootNode) {
 		(finishedWork.flags & PassiveMask) !== NoFlags ||
 		(finishedWork.subtreeFlags & PassiveMask) !== NoFlags
 	) {
+		// 进入到这里代表当前的fiber树种存在需要执行userEffect回调
 		if (!rootDoesHasPassiveEffects) {
 			rootDoesHasPassiveEffects = true;
 			// 调度副作用
 			// scheduleCallback是调度的方法，NormalPriority这个是优先级，这里可以理解为是setTimeOut方法
 			scheduleCallback(NormalPriority, () => {
+				// 这里因为调度是异步，所以会在commit节点完成以后再执行
+				// 而收集任务回调的的实际在commit的同步节点也就是commitWork的commitPassiveEffect方法中
+				// 当前方法执行时意味着保存在fiberRootNode中的pendingPassiveEffects对象收集完毕
 				// 执行副作用
 				flushPassiveEffects(root.pendingPassiveEffects);
 				return;
@@ -203,9 +208,13 @@ function commitRoot(root: fiberRootNode) {
 		root.current = finishedWork;
 	}
 	rootDoesHasPassiveEffects = false;
-	ensureRootIsScheduled(root);
+	// ensureRootIsScheduled(root);
 }
 
+/**
+ * 执行回调
+ * @param pendingPassiveEffects 收集回调的对象
+ */
 function flushPassiveEffects(pendingPassiveEffects: PendingPassiveEffects) {
 	pendingPassiveEffects.unmount.forEach((effect) => {
 		commitHookEffectListUnmount(Passive, effect);
@@ -220,6 +229,7 @@ function flushPassiveEffects(pendingPassiveEffects: PendingPassiveEffects) {
 		commitHookEffectListCreate(Passive | HookHasEffect, effect);
 	});
 	pendingPassiveEffects.update = [];
+	// 在useEffect的回调里面还有可能再次更新
 	flushSyncCallbacks();
 }
 
