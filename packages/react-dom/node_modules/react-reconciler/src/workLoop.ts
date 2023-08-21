@@ -216,20 +216,34 @@ function commitRoot(root: fiberRootNode) {
  * @param pendingPassiveEffects 收集回调的对象
  */
 function flushPassiveEffects(pendingPassiveEffects: PendingPassiveEffects) {
+	// 这里的effect全都是effect链表内部会循环整个链表
+
+	// unmount是在commit阶段的ChildDeletion标记添加上的,当内部方法执行的时候意味着组件需要销毁，销毁的操作是不需要执行create方法的
+	// 因此commitHookEffectListUnmount方法内部会删除HookHasEffect标记得到tag，那么下面的update方法就不会执行
+	// 这里内部也是执行了destroy方法
 	pendingPassiveEffects.unmount.forEach((effect) => {
+		// 在这里的时候组件其实已经销毁了
 		commitHookEffectListUnmount(Passive, effect);
 	});
 	pendingPassiveEffects.unmount = [];
 
+	// HookHasEffect代表了hook中存在副作用需要执行这个是保存在hooks中的memoizedState中的Effect的tag中
+	// PassiveEffect是保存咋子fiberNode中代表有useEffect需要处理
+	// pendingPassiveEffects.update只有标识了PassiveEffect才会被添加进来
 	pendingPassiveEffects.update.forEach((effect) => {
+		// 执行destroy方法，在mount阶段也拿不到destroy方法，所以无法执行，只有当执行了create之后从返回值中才能拿到destroy方法
+		// commitHookEffectListDestroy方法内部会拿到effect的destroy方法并且执行
 		commitHookEffectListDestroy(Passive | HookHasEffect, effect);
 	});
 
 	pendingPassiveEffects.update.forEach((effect) => {
+		// commitHookEffectListCreate方法内部会拿到create的方法然后执行并且将返回值保存到effect.destroy上面
+		// 当重复调度的时候，每次都会重新赋值新的effect.destroy方法，留着下一次使用
 		commitHookEffectListCreate(Passive | HookHasEffect, effect);
 	});
 	pendingPassiveEffects.update = [];
-	// 在useEffect的回调里面还有可能再次更新
+	// 在useEffect的回调里面还有可能再次更新，所以我们需要再次执行回调方法
+	// 这里我不是很理解，其实在回调中如果调用useState的dispaly,方法内部其实也会执行一个调度最终还是会执行这个方法的，经过试验地铁注释掉这个方法照样可以执行
 	flushSyncCallbacks();
 }
 

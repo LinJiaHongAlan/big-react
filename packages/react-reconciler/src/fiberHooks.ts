@@ -103,18 +103,23 @@ function mountEffect(create: EffectCallback | void, deps: EffectDeps | void) {
 	(currentlyRenderingFiber as FiberNode).flags |= PassiveEffect;
 	// 往hook添加一个memoizedState,memoizedState在不同的hook中数据结构都不同，在useState中保存的是数据的状态
 	// pushEffect是在useEffect的hook.memoizedState保存一个next，指向下一个useEffect的hook，形成一个环状链表
-	hook.memoizedState = pushEffect(Passive | PassiveEffect, create, undefined, nextDeps);
+	hook.memoizedState = pushEffect(Passive | HookHasEffect, create, undefined, nextDeps);
 }
 
 function updateEffect(create: EffectCallback | void, deps: EffectDeps | void) {
 	// 这个是函数组件第一个调用的时候生成的hooks链表，同时会返回当前的hook对象
 	const hook = updateWorkInProgresHook();
+	// 依赖项
 	const nextDeps = deps === undefined ? null : deps;
+	// 上一次create返回的方法
 	let destroy: EffectCallback | void;
-
+	// 当前的hook跟updateWorkInProgresHook放回的hook算是同一个hook，只是updateWorkInProgresHook返回的hook是浅拷贝的对象,只保留了memoizedState跟updateQueue
 	if (currentHook !== null) {
+		// 这个是当前useEffect返回的hook.memoizedState中的effect对象
 		const prevEffect = currentHook.memoizedState as Effect;
+		// 在上一次的调度中，会执行commitHookEffectListCreate时候就会保存create的返回值destroy方法
 		destroy = prevEffect.destroy;
+		// 如果存在依赖项，则进行浅比较如果相等则中断pushEffect的操作
 		if (nextDeps !== null) {
 			// 浅比较依赖
 			const prevDeps = prevEffect.deps;
@@ -124,7 +129,7 @@ function updateEffect(create: EffectCallback | void, deps: EffectDeps | void) {
 				return;
 			}
 		}
-		// 浅比较后不相等
+		// 浅比较后不相等，标记PassiveEffect表示具有useEffect副作用
 		(currentlyRenderingFiber as FiberNode).flags |= PassiveEffect;
 		hook.memoizedState = pushEffect(Passive | HookHasEffect, create, destroy, nextDeps);
 	}
@@ -243,6 +248,7 @@ function updateWorkInProgresHook(): Hook {
 	}
 
 	currentHook = nextCurrentHook as Hook;
+	// 浅拷贝只取出需要的两个值memoizedState跟updateQueue，不能直接将currentHook赋值给workInProgressHook
 	const newHook: Hook = {
 		memoizedState: currentHook.memoizedState,
 		updateQueue: currentHook.updateQueue,
@@ -266,6 +272,33 @@ function updateWorkInProgresHook(): Hook {
 		workInProgressHook.next = newHook;
 		// 将当前的指针指向新的hook，这样下次调用就可以继续生成新的hook被当前的next所指向
 		workInProgressHook = newHook;
+	}
+	return workInProgressHook;
+}
+
+function mountWorkInProgresHook(): Hook {
+	const hook: Hook = {
+		memoizedState: null,
+		updateQueue: null,
+		next: null
+	};
+	// 当前没有在操作的hook，表示这个阶段是第一次进来函数的时候执行的第一个hook
+	if (workInProgressHook === null) {
+		// 判断一下当前是否是在hooks的执行上下文中如果等于null则表示不是，那么就不是在函数组件中
+		// mount时 第一个hook
+		if (currentlyRenderingFiber === null) {
+			throw new Error('请在函数组件内调用hook');
+		} else {
+			workInProgressHook = hook;
+			// 当前的FiberNode.memoizedState指向该hook链表，因为其余的hook都在第一个hook的next中，所以第一个创建的hooks其实就包含所有的hook
+			currentlyRenderingFiber.memoizedState = workInProgressHook;
+		}
+	} else {
+		// mount时 后续的hook
+		// 将后续生成的hook指向上一个hooks的next
+		workInProgressHook.next = hook;
+		// 将当前的指针指向新的hook，这样下次调用就可以继续生成新的hook被当前的next所指向
+		workInProgressHook = hook;
 	}
 	return workInProgressHook;
 }
@@ -312,35 +345,8 @@ function dispatchSetState<State>(
 	// 创建一个update,将当前任务的优先级lane添加进去
 	const update = createUpdate(action, lane);
 	// 绑定update,enqueueUpdate方法支持多次添加会形成一个环状链表的结构,但更新多次调用的时候updateQueue会形成一个链表
-	//
+	// 这里的updateQueue其实是保存在hooks中的，当调用scheduleUpdateOnFiber会调度方法重新渲染，之后会从新执行useState的update方法，每部会消费掉当前的updateQueue
 	enqueueUpdate(updateQueue, update);
 	// 执行调度,会重新调用renderRoot
 	scheduleUpdateOnFiber(fiber, lane);
-}
-
-function mountWorkInProgresHook(): Hook {
-	const hook: Hook = {
-		memoizedState: null,
-		updateQueue: null,
-		next: null
-	};
-	// 当前没有在操作的hook，表示这个阶段是第一次进来函数的时候执行的第一个hook
-	if (workInProgressHook === null) {
-		// 判断一下当前是否是在hooks的执行上下文中如果等于null则表示不是，那么就不是在函数组件中
-		// mount时 第一个hook
-		if (currentlyRenderingFiber === null) {
-			throw new Error('请在函数组件内调用hook');
-		} else {
-			workInProgressHook = hook;
-			// 当前的FiberNode.memoizedState指向该hook链表，因为其余的hook都在第一个hook的next中，所以第一个创建的hooks其实就包含所有的hook
-			currentlyRenderingFiber.memoizedState = workInProgressHook;
-		}
-	} else {
-		// mount时 后续的hook
-		// 将后续生成的hook指向上一个hooks的next
-		workInProgressHook.next = hook;
-		// 将当前的指针指向新的hook，这样下次调用就可以继续生成新的hook被当前的next所指向
-		workInProgressHook = hook;
-	}
-	return workInProgressHook;
 }

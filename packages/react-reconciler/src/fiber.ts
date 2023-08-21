@@ -71,7 +71,9 @@ export class FiberNode {
 }
 
 export interface PendingPassiveEffects {
+	// 在commit阶段的ChildDeletion标记的时候收集的回调
 	unmount: Effect[];
+	// 在commit阶段的PassiveEffect标记的时候收集的回调
 	update: Effect[];
 }
 

@@ -5,6 +5,7 @@ function App() {
 	const [num, updateNum] = useState(0);
 	useEffect(() => {
 		console.log('App mount');
+		updateNum(num + 1);
 	}, []);
 
 	useEffect(() => {

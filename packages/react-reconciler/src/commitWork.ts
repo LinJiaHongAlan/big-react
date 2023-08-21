@@ -112,15 +112,16 @@ function commitPassiveEffect(
 			console.error('当FC存在PassiveEffect flag时,不应该不存在Effect');
 		}
 		// 因为effect是一个环状链表并且保存在updateQueue中,updateQueue.lastEffect保存起来，后续再遍历这个环状链表就能拿到所有的effect
+		// 这里因为push操作收集的回调是在commit阶段的，而commit阶段处理标记都是从子节点往上的阶段，这也是为什么useEffect回调都是子节点先触发
 		root.pendingPassiveEffects[type].push(updateQueue.lastEffect as Effect);
 	}
 }
 
 /**
- * 遍历effect环状链表的方法
+ * 循环遍历effect环状链表的方法
  * @param flags
  * @param lastEffect
- * @param callback
+ * @param callback 回调方法，传入当前的effect
  */
 function commitHookEffectList(
 	flags: Flags,
@@ -130,6 +131,7 @@ function commitHookEffectList(
 	let effect = lastEffect.next as Effect;
 
 	do {
+		// 判断effect.tag是否包含flags的类型
 		if ((effect.tag & flags) === flags) {
 			callback(effect);
 		}
