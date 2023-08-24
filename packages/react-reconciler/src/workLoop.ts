@@ -197,6 +197,10 @@ function commitRoot(root: fiberRootNode) {
 	const subtreeHasEffect = (finishedWork.subtreeFlags & MutationMask) !== NoFlags;
 	// rootHasEffect标识根节点存在需要更新的操作
 	const rootHasEffect = (finishedWork.flags & MutationMask) !== NoFlags;
+	// 这里subtreeHasEffect的判断是是否存在需要操作的MutationMask标记,当useState的dispatch调用的时候如果前后值没有改变
+	// 那么意味着组件返回对应的fiberNode不会变，那么是不会通过该判断
+	// 因此在useEffect(() => { setNum(0) })这种改变固定的值的时候当第二次执行useEffect的时候，不会通过判断，就不会在commit阶段收集回调
+	// 那么pendingPassiveEffects就不存在相关的回调函数也就不会执行
 	if (subtreeHasEffect || rootHasEffect) {
 		// beforeMutation
 		// mutation Placement

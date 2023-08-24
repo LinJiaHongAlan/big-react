@@ -23,6 +23,7 @@ export const commitMutationEffects = (finishedWork: FiberNode, root: fiberRootNo
 		const child: FiberNode | null = nextEffect.child;
 
 		// 这里这么做的原因，是找到最下级的需要操作的子节点，从当前子节点开始往上遍历之后再调用commitMutationEffectsOnFiber开始每个操作
+		// MutationMask = Placement | Update | ChildDeletion, 合并上PassiveEffect这个是代表useEffect操作
 		if ((nextEffect.subtreeFlags & (MutationMask | PassiveEffect)) !== NoFlags && child !== null) {
 			// 若存在子节点需要更新的操作则向下继续遍历
 			nextEffect = child;
@@ -78,6 +79,7 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode, root: fiberRootNo
 		finishedWork.flags &= ~ChildDeletion;
 	}
 	if ((flags & PassiveEffect) !== NoFlags) {
+		console.log('commit-PassiveEffect');
 		// 收集回调
 		commitPassiveEffect(finishedWork, root, 'update');
 		// 移除标记
