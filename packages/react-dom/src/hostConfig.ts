@@ -35,12 +35,20 @@ export function commitUpdate(fiber: FiberNode) {
 		case HostText:
 			const text = fiber.memoizedProps.content;
 			return commitTextUpdate(fiber.stateNode, text);
+		case HostComponent:
+			return updateFiberProps(fiber.stateNode, fiber.memoizedProps);
 		default:
 			if (__DEV__) {
 				console.warn('未实现的Update类型', fiber);
 			}
 			break;
 	}
+}
+
+// 在已有子节点之前插入新的子节点
+export function insertChildToContainer(child: Instance, container: Container, before: Instance) {
+	// document的原生方法，将child插入到container内部的before节点之前
+	container.insertBefore(child, before);
 }
 
 export function commitTextUpdate(textInstance: TextInstance, content: string) {
