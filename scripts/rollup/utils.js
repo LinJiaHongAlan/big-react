@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import cjs from '@rollup/plugin-commonjs';
-import tsc from '@rollup/plugin-typescript';
+import tsc from 'rollup-plugin-typescript2';
 import replace from '@rollup/plugin-replace';
 
 // 开发环境包的位置
