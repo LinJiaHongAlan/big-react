@@ -21,6 +21,7 @@ module.exports = {
 		'prettier/prettier': ['error', { endOfLine: 'auto' }],
 		'no-case-declarations': 'off',
 		'no-constant-condition': 'off',
-		'@typescript-eslint/ban-ts-comment': 'off'
+		'@typescript-eslint/ban-ts-comment': 'off',
+		'@typescript-eslint/no-var-requires': 'off'
 	}
 };
