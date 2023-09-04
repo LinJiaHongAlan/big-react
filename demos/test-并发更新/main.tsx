@@ -59,8 +59,6 @@ function schedule() {
 	// 这里排序之后欧取取第一个，就是拿出优先级最高的那个
 	const curWork = workList.sort((w1, w2) => w1.priority - w2.priority)[0];
 
-	// 获取优先级
-	const { priority: curPriority } = curWork;
 	// 策略逻辑
 	if (!curWork) {
 		curCallback = null;
@@ -69,14 +67,18 @@ function schedule() {
 		return;
 	}
 
+	// 获取优先级
+	const { priority: curPriority } = curWork;
+
 	if (curPriority === prevPriority) {
 		return;
 	}
 	// 因为curPriority拿到的一定是curWork中最高的优先级，如果逻辑能走到这里证明curPriority > prevPriority
-	// 取消之前的优先级回调
+	// 当发现有更高优先级,并且cbNode存在证明有宏任务调度未执行完，那么取消当前正准备执行的宏任务
+	// 因为当前未将work移出所以执行完优先级更高的任务之后依旧会执行剩余的任务
 	cbNode && cancelCallback(cbNode);
 
-	// 使用调度器在宏任务中调度perform
+	// 使用调度器在宏任务中调度perform,这里每一次的perform执行实际上是宏任务执行
 	curCallback = scheduleCallback(curPriority, perform.bind(null, curWork));
 }
 
@@ -84,14 +86,16 @@ function perform(work: Work, didTimeout?: boolean) {
 	/**
 	 * 在这里我们要让whie循环可中断
 	 * 1. 如果work就是同步优先级那么就不可中断 ImmediatePriority
-	 * 2. 饥饿问题 didTimeout标记当前任务有没有过期，如果过期他就是同步的
+	 * 2. 饥饿问题 didTimeout标记当前任务有没有过期，如果过期他就是同步的, scheduleCallback会自动带上这个参数在UserBlockingPriority的时候当一定次数之后didTimeout会为true,ImmediatePriority则didTimeout一开始就为true
 	 * 3. 时间切片
 	 */
-	// 是否需要同步执行的变量
+	// 是否需要同步执行的变量，如果优先级是ImmediatePriority，那么没得商量一定是等待while执行完毕
 	const needSync = work.priority === ImmediatePriority || didTimeout;
 	// shouldYield() === false 表示时间切片的时间没有用尽
+	console.log(work.priority, didTimeout);
 	while ((needSync || !shouldYield()) && work.count) {
 		work.count--;
+		// insertSpan内部执行了一个非常耗时的操作
 		insertSpan(work.priority.toString());
 	}
 
@@ -99,6 +103,7 @@ function perform(work: Work, didTimeout?: boolean) {
 	// 保存为上一次的优先级
 	prevPriority = work.priority;
 	if (!work.count) {
+		// work.count = 0意味着是执行完了
 		const workIndex = workList.indexOf(work);
 		workList.splice(workIndex, 1);
 		// 如果当前的work执行完了,则还原为默认的IdlePriority
@@ -107,8 +112,12 @@ function perform(work: Work, didTimeout?: boolean) {
 
 	const prevCallback = curCallback;
 	schedule();
+	// 如果在schedule方法中 curPriority === prevPriority那么就不会调度新的方法
+	// 这意味着newCallback === prevCallback,因此返回一个函数
 	const newCallback = curCallback;
 	if (newCallback && prevCallback === newCallback) {
+		// 如果调度的回调函数的返回值是函数，则会继续调度返回的函数,这个是scheduler已经具备的能力,因此会继续执行perform
+		// 如果newCallback !== prevCallback,那么也就没必要返回了,在上一步的schedule调度之后会执行剩余的调度
 		return perform.bind(null, work);
 	}
 }
@@ -118,7 +127,7 @@ function insertSpan(content) {
 	span.innerHTML = content;
 	span.className = `pri-${content}`;
 	// 执行一个耗时的操作
-	doSomeBuzyWork(10000000);
+	doSomeBuzyWork(3000000);
 	root?.appendChild(span);
 }
 
