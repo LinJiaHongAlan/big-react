@@ -1,6 +1,11 @@
 // 对于一个dom需要在某个属性上对于的element的props
 
 import { Container } from 'hostConfig';
+import {
+	unstable_ImmediatePriority,
+	unstable_NormalPriority,
+	unstable_UserBlockingPriority
+} from 'scheduler';
 import { Props } from 'shared/ReactTypes';
 
 export const elementPropsKey = '__props';
@@ -162,4 +167,18 @@ function collectPaths(targetElement: DOMElement, container: Container, eventType
 		targetElement = targetElement.parentNode as DOMElement;
 	}
 	return paths;
+}
+
+function eventTypeToSchdulerPriority(eventType: string) {
+	switch (eventType) {
+		case 'click':
+		case 'keydown':
+		case 'keyup':
+			// 最高优先级
+			return unstable_ImmediatePriority;
+		case 'scroll':
+			return unstable_UserBlockingPriority;
+		default:
+			return unstable_NormalPriority;
+	}
 }
