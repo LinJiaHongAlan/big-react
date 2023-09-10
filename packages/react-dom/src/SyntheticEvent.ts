@@ -4,7 +4,8 @@ import { Container } from 'hostConfig';
 import {
 	unstable_ImmediatePriority,
 	unstable_NormalPriority,
-	unstable_UserBlockingPriority
+	unstable_UserBlockingPriority,
+	unstable_runWithPriority
 } from 'scheduler';
 import { Props } from 'shared/ReactTypes';
 
@@ -106,8 +107,11 @@ function triggerEventFlow(paths: EventCallback[], se: SyntheticEvent) {
 	for (let i = 0; i < paths.length; i++) {
 		// 这里会将事件一个个循环调用
 		const callback = paths[i];
-		// 这里真正执行注册事件回调的地方，如果此时的se调用了阻止事件冒泡，那么下面的__stopPropagation就会是false
-		callback.call(null, se);
+		// unstable_runWithPriority会将第一个参数的优先级传入进去，这样在callback方法执行的过程中就可以通过unstable_getCurrentPriorityLevel拿到这个优先级
+		unstable_runWithPriority(eventTypeToSchdulerPriority(se.type), () => {
+			// 这里真正执行注册事件回调的地方，如果此时的se调用了阻止事件冒泡，那么下面的__stopPropagation就会是false
+			callback.call(null, se);
+		});
 
 		// 如果有调用过注释冒泡的方法时候那么，时间数组后面就会终止调用，这样就起到了阻止事件冒泡的效果
 		if (se.__stopPropagation) {

@@ -4,6 +4,7 @@ import { Flags, NoFlags } from './filberFlags';
 import { Container } from 'hostConfig';
 import { Lane, Lanes, NoLane, NoLanes } from './fiberLanes';
 import { Effect } from './fiberHooks';
+import { CallbackNode } from 'scheduler';
 
 /**
  * @tag 表示FiberNode是什么类型的节点
@@ -92,6 +93,9 @@ export class fiberRootNode {
 	finishedLane: Lane;
 	// effect回调方法储存的地方，在commit阶段通过commitPassiveEffect去收集回调
 	pendingPassiveEffects: PendingPassiveEffects;
+	callbackNode: CallbackNode | null;
+	callbackPriority: Lane;
+
 	constructor(container: Container, hostRootFiber: FiberNode) {
 		this.container = container;
 		this.current = hostRootFiber;
@@ -99,6 +103,8 @@ export class fiberRootNode {
 		this.finishedWork = null;
 		this.finishedLane = NoLanes;
 		this.pendingLanes = NoLane;
+		this.callbackNode = null;
+		this.callbackPriority = NoLane;
 		this.pendingPassiveEffects = {
 			unmount: [],
 			update: []
