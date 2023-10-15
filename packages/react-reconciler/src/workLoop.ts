@@ -38,9 +38,9 @@ let rootDoesHasPassiveEffects = false;
 // 当前Root阶段render退出时候的状态
 type RootExitStatus = number;
 // 代表中断执行
-const RootInComplete = 1;
+const RootInComplete: RootExitStatus = 1;
 // 代表执行完了
-const RootCompleted = 2;
+const RootCompleted: RootExitStatus = 2;
 
 // 初始化workInProgress
 function prepareFreshStack(root: fiberRootNode, lane: Lane) {
@@ -72,6 +72,7 @@ function ensureRootIsScheduled(root: fiberRootNode) {
 	const existingCallback = root.callbackNode;
 
 	if (updateLane === NoLane) {
+		// 如果优先级是NoLane证明没有需要调度的方法了
 		if (existingCallback !== null) {
 			unstable_cancelCallback(existingCallback);
 		}
@@ -83,10 +84,13 @@ function ensureRootIsScheduled(root: fiberRootNode) {
 
 	const curPriority = updateLane;
 	const prevPriority = root.callbackPriority;
+	// 如果优先级相同则意味着,上一次的更新被中断，还未执行完不再产生新的调度
 	if (curPriority === prevPriority) {
 		return;
 	}
+	// 判断existingCallback是否有值，若为null则证明当前没有调度的方法
 	if (existingCallback !== null) {
+		// 若不为null证明有更高得到优先级打断，需要中断当前得到调度方法
 		unstable_cancelCallback(existingCallback);
 	}
 	let newCallbackNode = null;
@@ -98,7 +102,7 @@ function ensureRootIsScheduled(root: fiberRootNode) {
 		}
 		// scheduleSyncCallback是收集函数方法的函数想数组syncQueue添加一个performSyncWorkOnRoot
 		// [performSyncWorkOnRoot, performSyncWorkOnRoot, performSyncWorkOnRoot]
-		scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root, updateLane));
+		scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root));
 		// scheduleMicroTask是异步任务，flushSyncCallbacks是消费syncQueue的函数
 		// 因此performSyncWorkOnRoot执行的次数也是跟当前函数执行的次数是一样的
 		// 也就是说flushSyncCallbacks方法执行意味着performSyncWorkOnRoot也会执行
@@ -112,6 +116,7 @@ function ensureRootIsScheduled(root: fiberRootNode) {
 			performConcurrentWorkOnRoot.bind(null, root)
 		);
 	}
+	// 更新callbackNode跟callbackPriority，如果是同步调度的话则newCallbackNode = null
 	root.callbackNode = newCallbackNode;
 	root.callbackPriority = curPriority;
 }
@@ -138,10 +143,13 @@ export function markUpdateFromFiberToRoot(fiber: FiberNode) {
 
 // 并发更新
 function performConcurrentWorkOnRoot(root: fiberRootNode, didTimeout: boolean): any {
-	// 保证之前的useEffect已经执行了
+	// 先拿到当前的callbackNode方法也就是调度performSyncWorkOnRoot的方法
 	const curCallback = root.callbackNode;
+	// 保证之前的useEffect已经执行了,因为在useEffect执行的过程中有可能会调用setState导致再次触发调度函数，这个时候如果有优先级更高的方法的时候需要打断当前的执行
+	// 因此在执行getHighesPriorityLane方法之前，我们需要确保执行完所有的useEffect,并返回是否执行了回调的值didFlushPassiveEffect
 	const didFlushPassiveEffect = flushPassiveEffects(root.pendingPassiveEffects);
 	if (didFlushPassiveEffect) {
+		// 如果执行了副作用，则判断调度方法是否一直,如果不一致证明存在useEffect调度了更高优先级的更新
 		if (root.callbackNode !== curCallback) {
 			return null;
 		}
@@ -158,18 +166,21 @@ function performConcurrentWorkOnRoot(root: fiberRootNode, didTimeout: boolean): 
 	 * 2. 饥饿问题 didTimeout标记当前任务有没有过期，如果过期他就是同步的, scheduleCallback会自动带上这个参数在UserBlockingPriority的时候当一定次数之后didTimeout会为true,ImmediatePriority则didTimeout一开始就为true
 	 * 3. 时间切片
 	 */
-	// 是否需要同步执行的变量，如果优先级是ImmediatePriority，那么没得商量一定是等待while执行完毕
+	// 是否需要同步执行的变量，如果needSync为true，那么没得商量一定是等待while执行完毕
 	const needSync = lane === SyncLane || didTimeout;
-	// render阶段
+	// render阶段返回优先级，exitStatus返回值是renderRoot之后的推出状态
 	const exitStatus = renderRoot(root, lane, !needSync);
 
+	// 重新调用调度一次，ensureRootIsScheduled方法如果优先级一样是不会重新调度的
 	ensureRootIsScheduled(root);
 
+	// RootInComplete是中断执行也就是未结束的状态
 	if (exitStatus === RootInComplete) {
-		// 未结束状态
+		// 看中断后并重新调度之后的回调跟当前的回调是否是同一个，如果不是同一个则取消操作
 		if (root.callbackNode !== curCallbackNode) {
 			return null;
 		}
+		// 如果是同一个则返回当前的方法，那么调度器会继续调用这个方法
 		return performConcurrentWorkOnRoot.bind(null, root);
 	}
 	// 已经更新完了

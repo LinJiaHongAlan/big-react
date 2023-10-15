@@ -113,7 +113,7 @@ function triggerEventFlow(paths: EventCallback[], se: SyntheticEvent) {
 			callback.call(null, se);
 		});
 
-		// 如果有调用过注释冒泡的方法时候那么，时间数组后面就会终止调用，这样就起到了阻止事件冒泡的效果
+		// 如果有调用过注释冒泡的方法时候那么，事件数组后面就会终止调用，这样就起到了阻止事件冒泡的效果
 		if (se.__stopPropagation) {
 			// 阻止事件继续传播
 			break;
@@ -147,7 +147,7 @@ function collectPaths(targetElement: DOMElement, container: Container, eventType
 		// 如果存在
 		if (elementProps) {
 			// click => onClick onClickCapture
-			// 根据时间类型拿到实际jsx中的事件回调函数名
+			// 根据事件类型拿到实际jsx中的事件回调函数名
 			const callbackNameList = getEventCallbackNameFromEventType(eventType);
 			// 如果存在
 			if (callbackNameList) {

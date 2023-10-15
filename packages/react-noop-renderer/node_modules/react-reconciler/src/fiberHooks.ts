@@ -4,6 +4,7 @@ import { Dispatch } from 'react/src/currentDispatcher';
 import { DisPatcher } from 'react/src/currentDispatcher';
 import { Flags, PassiveEffect } from './filberFlags';
 import {
+	Update,
 	UpdateQueue,
 	createUpdate,
 	createUpdateQueue,
@@ -28,6 +29,8 @@ interface Hook {
 	memoizedState: any;
 	updateQueue: unknown;
 	next: Hook | null;
+	baseState: any;
+	baseQueue: Update<any> | null;
 }
 
 export interface Effect {
@@ -210,16 +213,46 @@ function updateState<State>(): [State, Dispatch<State>] {
 
 	// 实现updateState中[计算新的state的逻辑]
 	const queue = hook.updateQueue as UpdateQueue<State>;
+	const baseState = hook.baseState;
+
 	const pending = queue.shared.pending;
-	// queue.shared.pending现在是链表结构，需要置空
-	queue.shared.pending = null;
+	// 这里的currentHook其实就是updateWorkInProgresHook方法在获取上一次的Hook信息时保存的与返回的hook一样只是多了next指针
+	const current = currentHook as Hook;
+	let baseQueue = current.baseQueue;
 
 	if (pending !== null) {
-		// 如果上一个组件有调用dispatch更改值的话，那么pending也就是传入的上一个调用dispatch的时候添加进得update
-		// 在这里我们消费掉update得到最新的值
-		const { memoizedState } = processUpdateQueue(hook.memoizedState, pending, renderLane);
-		// 将最新的结果更新到hook中
-		hook.memoizedState = memoizedState;
+		if (baseQueue !== null) {
+			// 将baseQueue跟pendingQueue合成一个环状链表
+			// baseQueue b2 -> b0 -> b1 -> b2
+			// pengdingQueue p2 -> p0 -> p1 -> p2
+			// b0
+			const baseFirst = baseQueue.next;
+			// p0
+			const pendingFirst = pending.next;
+			// b2 -> p0
+			baseQueue.next = pendingFirst;
+			// p2 -> b0
+			pending.next = baseFirst;
+			// p2 -> b0 -> b1 -> b2 -> p0 -> p1 -> p2
+		}
+		baseQueue = pending;
+		// 保存在current中
+		current.baseQueue = pending;
+		// 保存在current之后就可以置空
+		queue.shared.pending = null;
+		if (baseQueue !== null) {
+			// 如果上一个组件有调用dispatch更改值的话，那么pending也就是传入的上一个调用dispatch的时候添加进得update
+			// 在这里我们消费掉update得到最新的值
+			const {
+				memoizedState,
+				baseQueue: newBaseQueue,
+				baseState: newBaseState
+			} = processUpdateQueue(baseState, baseQueue, renderLane);
+			// 将最新的结果更新到hook中
+			hook.memoizedState = memoizedState;
+			hook.baseState = newBaseState;
+			hook.baseQueue = newBaseQueue;
+		}
 	}
 	// 再将当前的新的hook结果返回出去
 	return [hook.memoizedState, queue.dispatch as Dispatch<State>];
@@ -252,7 +285,9 @@ function updateWorkInProgresHook(): Hook {
 	const newHook: Hook = {
 		memoizedState: currentHook.memoizedState,
 		updateQueue: currentHook.updateQueue,
-		next: null
+		next: null,
+		baseQueue: currentHook.baseQueue,
+		baseState: currentHook.baseState
 	};
 
 	// 当前没有在操作的hook，表示这个阶段是第一次进来函数的时候执行的第一个hook
@@ -280,7 +315,9 @@ function mountWorkInProgresHook(): Hook {
 	const hook: Hook = {
 		memoizedState: null,
 		updateQueue: null,
-		next: null
+		next: null,
+		baseQueue: null,
+		baseState: null
 	};
 	// 当前没有在操作的hook，表示这个阶段是第一次进来函数的时候执行的第一个hook
 	if (workInProgressHook === null) {
