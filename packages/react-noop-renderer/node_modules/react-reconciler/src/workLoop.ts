@@ -204,7 +204,6 @@ function performConcurrentWorkOnRoot(root: fiberRootNode, didTimeout: boolean): 
 /**
  * 从跟节点开始更新
  * @param root 根节点fiberRootNode
- * @param lane 优先级（暂时还不清楚跟nextLane的区别）
  * @returns
  */
 function performSyncWorkOnRoot(root: fiberRootNode) {

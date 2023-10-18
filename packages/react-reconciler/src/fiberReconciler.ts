@@ -17,7 +17,8 @@ export function createContainer(container: Container) {
 // 执行render方法后内部调用的api
 export function updateContainer(element: ReactElementType | null, root: fiberRootNode) {
 	const hostRootFiber = root.current;
-	// 创建一个优先级
+	// 获取当前的优先级，这里由于是初始化那么方法内部调用的unstable_getCurrentPriorityLevel拿到的是默认值unstable_NormalPriority
+	// 默认值unstable_NormalPriority转换为Lane是DefaultLane也就是4
 	const lane = requestUpdateLane();
 	// 创建一个新的额Update
 	// element也就是render传进来的ReactElementType
