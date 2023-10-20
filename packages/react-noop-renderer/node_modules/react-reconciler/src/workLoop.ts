@@ -176,7 +176,7 @@ function performConcurrentWorkOnRoot(root: fiberRootNode, didTimeout: boolean): 
 
 	// RootInComplete是中断执行也就是未结束的状态
 	if (exitStatus === RootInComplete) {
-		// 看中断后并重新调度之后的回调跟当前的回调是否是同一个，如果不是同一个则取消操作
+		// 看中断后并重新调度之后的回调跟当前的回调是否是同一个，如果不是同一个则取消操作,因为上面的ensureRootIsScheduled方法发现了更高优先级的方法,从新生成了新的调度方法
 		if (root.callbackNode !== curCallbackNode) {
 			return null;
 		}
@@ -202,7 +202,7 @@ function performConcurrentWorkOnRoot(root: fiberRootNode, didTimeout: boolean): 
 }
 
 /**
- * 从跟节点开始更新
+ * 同步更新
  * @param root 根节点fiberRootNode
  * @returns
  */
@@ -335,13 +335,13 @@ function commitRoot(root: fiberRootNode) {
 		// mutation Placement
 		commitMutationEffects(finishedWork, root);
 		root.current = finishedWork;
-
 		// layout
 	} else {
 		root.current = finishedWork;
 	}
 	rootDoesHasPassiveEffects = false;
-	// ensureRootIsScheduled(root);
+	// 再次调用调度方法，这里必须要再次调用，因为同步优先级在执行完render阶段之后会直接执行commit阶段,此时可能拥有低优先级的方法需要执行
+	ensureRootIsScheduled(root);
 }
 
 /**

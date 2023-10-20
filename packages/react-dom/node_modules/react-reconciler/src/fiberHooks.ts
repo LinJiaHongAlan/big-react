@@ -213,14 +213,17 @@ function updateState<State>(): [State, Dispatch<State>] {
 
 	// 实现updateState中[计算新的state的逻辑]
 	const queue = hook.updateQueue as UpdateQueue<State>;
+	// 上一次最后一个没有被更新的值,初始化的时候为null
 	const baseState = hook.baseState;
 
+	// 本次调用的时候产生的新的待更新的update
 	const pending = queue.shared.pending;
-	// 这里的currentHook其实就是updateWorkInProgresHook方法在获取上一次的Hook信息时保存的与返回的hook一样只是多了next指针
+	// currentHook表示当前的hook是updateWorkInProgressHook方法内赋值的，跟updateWorkInProgressHook放回的hook是一样的,只是hook是从生成的一个新的对象并且next不赋值
 	const current = currentHook as Hook;
 	let baseQueue = current.baseQueue;
 
 	if (pending !== null) {
+		// 这里显然第一次的时候baseQueue是为null,将pendingQueue跟baseQueue合并成一个新的环状链表作为这次整体的更新
 		if (baseQueue !== null) {
 			// 将baseQueue跟pendingQueue合成一个环状链表
 			// baseQueue b2 -> b0 -> b1 -> b2
@@ -235,24 +238,36 @@ function updateState<State>(): [State, Dispatch<State>] {
 			pending.next = baseFirst;
 			// p2 -> b0 -> b1 -> b2 -> p0 -> p1 -> p2
 		}
+		// 在这里将baseQueue赋值为pending
 		baseQueue = pending;
 		// 保存在current中
 		current.baseQueue = pending;
-		// 保存在current之后就可以置空
+		// 保存在current之后就可以置空,因为之后未被更新的updateQueue会被保存到currentHook中
 		queue.shared.pending = null;
-		if (baseQueue !== null) {
-			// 如果上一个组件有调用dispatch更改值的话，那么pending也就是传入的上一个调用dispatch的时候添加进得update
-			// 在这里我们消费掉update得到最新的值
-			const {
-				memoizedState,
-				baseQueue: newBaseQueue,
-				baseState: newBaseState
-			} = processUpdateQueue(baseState, baseQueue, renderLane);
-			// 将最新的结果更新到hook中
-			hook.memoizedState = memoizedState;
-			hook.baseState = newBaseState;
-			hook.baseQueue = newBaseQueue;
-		}
+	}
+	// 如果合并后的baseQueue都为null的话则终止更新
+	if (baseQueue !== null) {
+		// 如果上一个组件有调用dispatch更改值的话，那么pending也就是传入的上一个调用dispatch的时候添加进得update
+		/**
+		 * processUpdateQueue消费update
+		 * 传进去的参数
+		 * baseState上一次最后一个没有被更新的值,如果是第一次则是null
+		 * baseQueue这个给是将上次被调过的updateQueue跟需要更新的pendingQueue(如果在更新的过程中有调用新的setState则会产生新的更新)合并的一个对象
+		 * renderLane本次更新的优先级
+		 * 返回的参数
+		 * memoizedState当前更新后的值（有可能是中间值）
+		 * baseState表示本次更新没有被调过的最后一个的值
+		 * baseQueue是被调过的update链表
+		 */
+		const {
+			memoizedState,
+			baseQueue: newBaseQueue,
+			baseState: newBaseState
+		} = processUpdateQueue(baseState, baseQueue, renderLane);
+		// 将最新的结果更新到hook中
+		hook.memoizedState = memoizedState;
+		hook.baseState = newBaseState;
+		hook.baseQueue = newBaseQueue;
 	}
 	// 再将当前的新的hook结果返回出去
 	return [hook.memoizedState, queue.dispatch as Dispatch<State>];
@@ -376,7 +391,8 @@ function dispatchSetState<State>(
 	updateQueue: UpdateQueue<State>,
 	action: Action<State>
 ) {
-	// 返回SyncLane
+	// 获取当前最高优先级的Lane在合成事件中，在合成事件中事件的回调方法会赋值对应的优先级,在事件的回调方法中会调用setState那么就会进入到这个方法
+	// 所以requestUpdateLane就能拿到当前需要更新的优先级
 	const lane = requestUpdateLane();
 
 	// 创建一个update,将当前任务的优先级lane添加进去
