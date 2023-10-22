@@ -5,6 +5,7 @@ import { FunctionComponent, HostComponent, HostRoot, HostText, Fragment } from '
 import { mountChildFibers, reconcileChildFibers } from './childFibers';
 import { renderWithHooks } from './fiberHooks';
 import { Lane } from './fiberLanes';
+import { Ref } from './filberFlags';
 
 // 递归中的递阶段
 // beginWork的工作流程
@@ -71,6 +72,7 @@ function updateHostRoot(wip: FiberNode, renderLane: Lane) {
 function updateHostComponent(wip: FiberNode) {
 	const nextProps = wip.pendingProps;
 	const nextChildren = nextProps.children;
+	markRef(wip.alternate, wip);
 	reconileChildren(wip, nextChildren);
 	return wip.child;
 }
@@ -92,5 +94,14 @@ function reconileChildren(wip: FiberNode, children?: ReactElementType) {
 		// mount
 		// 不追踪副作用
 		wip.child = mountChildFibers(wip, null, children);
+	}
+}
+
+function markRef(current: FiberNode | null, workInProgress: FiberNode) {
+	const ref = workInProgress.ref;
+
+	// current=null意味着是mount时
+	if ((current === null && ref !== null) || (current !== null && current.ref !== ref)) {
+		workInProgress.flags |= Ref;
 	}
 }

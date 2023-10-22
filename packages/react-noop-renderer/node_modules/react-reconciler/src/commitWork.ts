@@ -10,10 +10,12 @@ import { FiberNode, PendingPassiveEffects, fiberRootNode } from './fiber';
 import {
 	ChildDeletion,
 	Flags,
+	LayoutMask,
 	MutationMask,
 	NoFlags,
 	PassiveEffect,
 	Placement,
+	Ref,
 	Update
 } from './filberFlags';
 import { FunctionComponent, HostComponent, HostRoot, HostText } from './workTags';
@@ -22,41 +24,82 @@ import { HookHasEffect } from './hookEffectTags';
 
 let nextEffect: FiberNode | null = null;
 
-export const commitMutationEffects = (finishedWork: FiberNode, root: fiberRootNode) => {
-	nextEffect = finishedWork;
+// phrase当前是什么阶段
+const commitEffects = (
+	phrase: 'mutation' | 'layout',
+	mask: Flags,
+	callback: (fiber: FiberNode, root: fiberRootNode) => void
+) => {
+	return (finishedWork: FiberNode, root: fiberRootNode) => {
+		nextEffect = finishedWork;
+		while (nextEffect !== null) {
+			// 向下遍历
+			const child: FiberNode | null = nextEffect.child;
 
-	while (nextEffect !== null) {
-		// 向下遍历
-		const child: FiberNode | null = nextEffect.child;
+			// 这里这么做的原因，是找到最下级的需要操作的子节点，从当前子节点开始往上遍历之后再调用commitMutationEffectsOnFiber开始每个操作
+			// MutationMask = Placement | Update | ChildDeletion, 合并上PassiveEffect这个是代表useEffect操作
+			if (
+				(nextEffect.subtreeFlags & (MutationMask | PassiveEffect)) !== NoFlags &&
+				child !== null
+			) {
+				// 若存在子节点需要更新的操作则向下继续遍历
+				nextEffect = child;
+			} else {
+				// 证明要找的子节点不包含subtreeFlags
+				// 向上遍历DFS
+				while (nextEffect !== null) {
+					// 这里是处理节点的核心
+					callback(nextEffect, root);
+					// 兄弟节点
+					const sibling: FiberNode | null = nextEffect.sibling;
 
-		// 这里这么做的原因，是找到最下级的需要操作的子节点，从当前子节点开始往上遍历之后再调用commitMutationEffectsOnFiber开始每个操作
-		// MutationMask = Placement | Update | ChildDeletion, 合并上PassiveEffect这个是代表useEffect操作
-		if ((nextEffect.subtreeFlags & (MutationMask | PassiveEffect)) !== NoFlags && child !== null) {
-			// 若存在子节点需要更新的操作则向下继续遍历
-			nextEffect = child;
-		} else {
-			// 证明要找的子节点不包含subtreeFlags
-			// 向上遍历DFS
-			while (nextEffect !== null) {
-				// 这里是处理节点的核心
-				commitMutationEffectsOnFiber(nextEffect, root);
-				// 兄弟节点
-				const sibling: FiberNode | null = nextEffect.sibling;
-
-				if (sibling !== null) {
-					// 如果存在兄弟节点，我们先处理兄弟节点，直到没有再向上找父级
-					nextEffect = sibling;
-					break;
+					if (sibling !== null) {
+						// 如果存在兄弟节点，我们先处理兄弟节点，直到没有再向上找父级
+						nextEffect = sibling;
+						break;
+					}
+					nextEffect = nextEffect.return;
 				}
-				nextEffect = nextEffect.return;
 			}
 		}
-	}
+	};
 };
+
+// export const commitMutationEffects = (finishedWork: FiberNode, root: fiberRootNode) => {
+// 	nextEffect = finishedWork;
+
+// 	while (nextEffect !== null) {
+// 		// 向下遍历
+// 		const child: FiberNode | null = nextEffect.child;
+
+// 		// 这里这么做的原因，是找到最下级的需要操作的子节点，从当前子节点开始往上遍历之后再调用commitMutationEffectsOnFiber开始每个操作
+// 		// MutationMask = Placement | Update | ChildDeletion, 合并上PassiveEffect这个是代表useEffect操作
+// 		if ((nextEffect.subtreeFlags & (MutationMask | PassiveEffect)) !== NoFlags && child !== null) {
+// 			// 若存在子节点需要更新的操作则向下继续遍历
+// 			nextEffect = child;
+// 		} else {
+// 			// 证明要找的子节点不包含subtreeFlags
+// 			// 向上遍历DFS
+// 			while (nextEffect !== null) {
+// 				// 这里是处理节点的核心
+// 				commitMutationEffectsOnFiber(nextEffect, root);
+// 				// 兄弟节点
+// 				const sibling: FiberNode | null = nextEffect.sibling;
+
+// 				if (sibling !== null) {
+// 					// 如果存在兄弟节点，我们先处理兄弟节点，直到没有再向上找父级
+// 					nextEffect = sibling;
+// 					break;
+// 				}
+// 				nextEffect = nextEffect.return;
+// 			}
+// 		}
+// 	}
+// };
 
 // commit节点向上递归开始处理标记的方法
 const commitMutationEffectsOnFiber = (finishedWork: FiberNode, root: fiberRootNode) => {
-	const flags = finishedWork.flags;
+	const { flags, tag } = finishedWork;
 
 	if ((flags & Placement) !== NoFlags) {
 		// 执行Placement这个是插入或者移动标记
@@ -92,7 +135,51 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode, root: fiberRootNo
 		// 移除标记
 		finishedWork.flags &= ~PassiveEffect;
 	}
+	if ((flags & Ref) !== NoFlags && tag === HostComponent) {
+		safelyDetachRef(finishedWork);
+	}
 };
+
+function safelyDetachRef(current: FiberNode) {
+	const ref = current.ref;
+	if (ref !== null) {
+		if (typeof ref === 'function') {
+			ref(null);
+		} else {
+			ref.current = null;
+		}
+	}
+}
+
+const commitLayoutEffectsOnFiber = (finishedWork: FiberNode, root: fiberRootNode) => {
+	const { flags, tag } = finishedWork;
+
+	if ((flags & Ref) !== NoFlags && tag === HostComponent) {
+		// 绑定新的ref
+		safelyAttachRef(finishedWork);
+		finishedWork.flags &= ~Ref;
+	}
+};
+
+function safelyAttachRef(fiber: FiberNode) {
+	const ref = fiber.ref;
+	if (ref !== null) {
+		const instance = fiber.stateNode;
+		if (typeof ref === 'function') {
+			ref(instance);
+		} else {
+			ref.current = instance;
+		}
+	}
+}
+
+export const commitMutationEffects = commitEffects(
+	'mutation',
+	MutationMask | PassiveEffect,
+	commitMutationEffectsOnFiber
+);
+
+export const commitLayoutEffects = commitEffects('layout', LayoutMask, commitLayoutEffectsOnFiber);
 
 /**
  * 收集effect方法
@@ -220,6 +307,7 @@ function commitDeletion(childToDelete: FiberNode, root: fiberRootNode) {
 			case HostComponent:
 				recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber);
 				// TODO 解绑ref
+				safelyDetachRef(unmountFiber);
 				return;
 			case HostText:
 				recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber);

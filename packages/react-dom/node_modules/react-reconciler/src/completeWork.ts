@@ -7,7 +7,11 @@ import {
 } from 'hostConfig';
 import { FiberNode } from './fiber';
 import { FunctionComponent, HostComponent, HostRoot, HostText, Fragment } from './workTags';
-import { NoFlags, Update } from './filberFlags';
+import { NoFlags, Ref, Update } from './filberFlags';
+
+function markRef(fiber: FiberNode) {
+	fiber.flags |= Ref;
+}
 
 function markUpdate(fiber: FiberNode) {
 	// 添加更新标记
@@ -32,12 +36,20 @@ export const completeWork = (wip: FiberNode) => {
 				// updateFiberProps(wip.stateNode, newProps);
 				// 直接加上Update标记，在commit阶段会通过commitUpdate处理
 				markUpdate(wip);
+				// 标记Ref
+				if (current.ref !== wip.ref) {
+					markRef(wip);
+				}
 			} else {
 				// 1.构建真实DOM
 				const instance = createInstance(wip.type, newProps);
 				// 2.将DOM插入到DOM树中
 				appendAllChildren(instance, wip);
 				wip.stateNode = instance;
+				// 标记Ref
+				if (wip.ref !== null) {
+					markRef(wip);
+				}
 			}
 			// flags冒泡
 			bubbleProperties(wip);

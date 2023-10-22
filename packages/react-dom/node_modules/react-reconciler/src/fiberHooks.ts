@@ -2,6 +2,7 @@ import internals from 'shared/internals';
 import { FiberNode } from './fiber';
 import { Dispatch } from 'react/src/currentDispatcher';
 import { DisPatcher } from 'react/src/currentDispatcher';
+import currentBatchConfig from 'react/src/currentBatchConfig';
 import { Flags, PassiveEffect } from './filberFlags';
 import {
 	Update,
@@ -85,12 +86,16 @@ export function renderWithHooks(wip: FiberNode, lane: Lane) {
 // 挂载时的hooks集合
 const HooksDispatcherOnMount: DisPatcher = {
 	useState: mountState,
-	useEffect: mountEffect
+	useEffect: mountEffect,
+	useTransition: mountTransition,
+	useRef: mountRef
 };
 
 const HooksDispatcherOnUpdate: DisPatcher = {
 	useState: updateState,
-	useEffect: updateEffect
+	useEffect: updateEffect,
+	useTransition: updateTransition,
+	useRef: updateRef
 };
 
 /**
@@ -201,6 +206,44 @@ function createFCUpdateQueue<State>() {
 	const updateQueue = createUpdateQueue<State>() as FCUpdateQueue<State>;
 	updateQueue.lastEffect = null;
 	return updateQueue;
+}
+
+function mountRef<T>(initialValue: T): { current: T } {
+	const hook = mountWorkInProgresHook();
+	const ref = { current: initialValue };
+	hook.memoizedState = ref;
+	return ref;
+}
+
+function updateRef<T>(initialValue: T): { current: T } {
+	const hook = updateWorkInProgresHook();
+	return hook.memoizedState;
+}
+
+// initialState就是函数组件调用useState传入得到值
+function mountState<State>(initialState: (() => State) | State): [State, Dispatch<State>] {
+	// 这个是函数组件第一个调用的时候生成的hooks链表，同时会返回当前的hook对象
+	const hook = mountWorkInProgresHook();
+	// 处理useState传入的值
+	let memoizedState;
+	if (initialState instanceof Function) {
+		memoizedState = initialState();
+	} else {
+		memoizedState = initialState;
+	}
+	// 给当前的hooks赋值一个updateQueue跟传入的值的处理结果memoizedState
+	const queue = createUpdateQueue<State>();
+	hook.updateQueue = queue;
+	hook.memoizedState = memoizedState;
+	hook.baseState = memoizedState;
+
+	// 锁定参数,为了dispatch能脱离当前点额函数调用
+	// 将当前点额函数组件的FiberNode=currentlyRenderingFiber传递给dispatch以及当前的queue
+	// @ts-ignore
+	const dispatch = dispatchSetState.bind(null, currentlyRenderingFiber, queue);
+	// 将dispatch保存起来(暂时没看到一定要保存起来的必要)
+	queue.dispatch = dispatch;
+	return [memoizedState, dispatch];
 }
 
 /**
@@ -355,29 +398,30 @@ function mountWorkInProgresHook(): Hook {
 	return workInProgressHook;
 }
 
-// initialState就是函数组件调用useState传入得到值
-function mountState<State>(initialState: (() => State) | State): [State, Dispatch<State>] {
-	// 这个是函数组件第一个调用的时候生成的hooks链表，同时会返回当前的hook对象
+function mountTransition(): [boolean, (callback: () => void) => void] {
+	const [isPending, setPending] = mountState(false);
 	const hook = mountWorkInProgresHook();
-	// 处理useState传入的值
-	let memoizedState;
-	if (initialState instanceof Function) {
-		memoizedState = initialState();
-	} else {
-		memoizedState = initialState;
-	}
-	// 给当前的hooks赋值一个updateQueue跟传入的值的处理结果memoizedState
-	const queue = createUpdateQueue<State>();
-	hook.updateQueue = queue;
-	hook.memoizedState = memoizedState;
+	const start = startTransition.bind(null, setPending);
+	hook.memoizedState = start;
 
-	// 锁定参数,为了dispatch能脱离当前点额函数调用
-	// 将当前点额函数组件的FiberNode=currentlyRenderingFiber传递给dispatch以及当前的queue
-	// @ts-ignore
-	const dispatch = dispatchSetState.bind(null, currentlyRenderingFiber, queue);
-	// 将dispatch保存起来(暂时没看到一定要保存起来的必要)
-	queue.dispatch = dispatch;
-	return [memoizedState, dispatch];
+	return [isPending, start];
+}
+
+function updateTransition(): [boolean, (callback: () => void) => void] {
+	const [isPending] = updateState();
+	const hook = updateWorkInProgresHook();
+	const start = hook.memoizedState;
+	return [isPending as boolean, start];
+}
+
+function startTransition(setPending: Dispatch<boolean>, callback: () => void) {
+	setPending(true);
+	const prevTransition = currentBatchConfig.transition;
+	currentBatchConfig.transition = 1;
+
+	callback();
+	setPending(false);
+	currentBatchConfig.transition = prevTransition;
 }
 
 /**

@@ -95,11 +95,12 @@ function ensureRootIsScheduled(root: fiberRootNode) {
 	}
 	let newCallbackNode = null;
 
+	// 同步优先级 用微任务调度
+	if (__DEV__) {
+		console.log(`在${updateLane === SyncLane ? '微' : '宏'}任务中调度，优先级：`, updateLane);
+	}
+
 	if (updateLane === SyncLane) {
-		// 同步优先级 用微任务调度
-		if (__DEV__) {
-			console.log('在微任务中调度，优先级：', updateLane);
-		}
 		// scheduleSyncCallback是收集函数方法的函数想数组syncQueue添加一个performSyncWorkOnRoot
 		// [performSyncWorkOnRoot, performSyncWorkOnRoot, performSyncWorkOnRoot]
 		scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root));
