@@ -169,8 +169,9 @@ function performConcurrentWorkOnRoot(root: fiberRootNode, didTimeout: boolean): 
 	 */
 	// 是否需要同步执行的变量，如果needSync为true，那么没得商量一定是等待while执行完毕
 	const needSync = lane === SyncLane || didTimeout;
-	// render阶段返回优先级，exitStatus返回值是renderRoot之后的推出状态
+	// render阶段返回优先级，exitStatus返回值是renderRoot之后的退出状态
 	const exitStatus = renderRoot(root, lane, !needSync);
+	console.log(exitStatus, RootInComplete, RootCompleted);
 
 	// 重新调用调度一次，ensureRootIsScheduled方法如果优先级一样是不会重新调度的
 	ensureRootIsScheduled(root);
@@ -263,7 +264,8 @@ function renderRoot(root: fiberRootNode, lane: Lane, shouldTimeSlice: boolean) {
 		}
 	} while (true);
 
-	// (执行完了 || 中断执行了)，就从workList中移除
+	// shouldTimeSlice为true证明是并发更新
+	// workInProgress不为null证明还没执行完，只是更新中断了
 	if (shouldTimeSlice && workInProgress !== null) {
 		// 还没执行完
 		return RootInComplete;

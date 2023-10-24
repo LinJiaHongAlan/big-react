@@ -28,6 +28,7 @@ export function mergeLanes(laneA: Lane, laneB: Lane): Lanes {
 }
 
 export function requestUpdateLane() {
+	// 如果此时在Transition方法中则返回Transition的优先级
 	const isTransition = ReactCurrentBatchConfig.transition !== null;
 	if (isTransition) {
 		return TransitionLane;

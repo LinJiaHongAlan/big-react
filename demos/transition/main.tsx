@@ -9,7 +9,6 @@ import './style.css';
 function App() {
 	const [isPending, startTransition] = useTransition();
 	const [tab, setTab] = useState('about');
-	console.log('hello');
 	function selectTab(nextTab) {
 		startTransition(() => {
 			setTab(nextTab);

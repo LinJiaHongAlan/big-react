@@ -252,6 +252,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		if (typeof element === 'string' || typeof element === 'number') {
 			before = existingChildren.get(index);
 			// HostText
+			// 存在before
 			if (before) {
 				// 如果fiber的类型是HostText证明是文本类型可以复用
 				if (before.tag === HostText) {
@@ -261,6 +262,8 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 					return useFiber(before, { content: element + '' });
 				}
 			}
+			// 如果不存在则返回新的textNode
+			return new FiberNode(HostText, { content: element + '' }, null);
 		}
 
 		// ReactElement
@@ -333,9 +336,13 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 			// 是的话往下取一层
 			newChild = newChild?.props?.children;
 		}
-
 		// $$typeof除了文本节点不存在以外剩下的不管是组件还是普通节点或者是Fragment都为REACT_ELEMENT_TYPE
 		if (typeof newChild === 'object' && newChild !== null) {
+			// 多节点的情况 ul > 3li
+			if (Array.isArray(newChild)) {
+				return reconcileChildrenArray(returnFiber, currentFiber, newChild);
+			}
+
 			switch (newChild.$$typeof) {
 				case REACT_ELEMENT_TYPE:
 					// 根据newChild生成一个新的FiberNode并且指向returnFiber，如果是首次渲染的话会直接给flags加上Placement标记
@@ -343,10 +350,6 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 					// placeSingleChild这里如果有追踪副作用的情况下会添加插入的标记Placement(给currentFiber.child添加)
 					// 也就是说HostRoot的子节点在首次渲染的时候会添加Placement标记
 					return placeSingleChild(reconcileSingleElement(returnFiber, currentFiber, newChild));
-			}
-			// 多节点的情况 ul > 3li
-			if (Array.isArray(newChild)) {
-				return reconcileChildrenArray(returnFiber, currentFiber, newChild);
 			}
 		}
 		// HostText
