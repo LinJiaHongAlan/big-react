@@ -171,7 +171,6 @@ function performConcurrentWorkOnRoot(root: fiberRootNode, didTimeout: boolean): 
 	const needSync = lane === SyncLane || didTimeout;
 	// render阶段返回优先级，exitStatus返回值是renderRoot之后的退出状态
 	const exitStatus = renderRoot(root, lane, !needSync);
-	console.log(exitStatus, RootInComplete, RootCompleted);
 
 	// 重新调用调度一次，ensureRootIsScheduled方法如果优先级一样是不会重新调度的
 	ensureRootIsScheduled(root);
@@ -399,7 +398,8 @@ function workLoopSync() {
 function workLoopConcurrent() {
 	// 只要指针不等于null就能一直循环下去,这里也就是递归中的递
 	// 但completeUnitOfWork中循环到最上层的时候workInProgress则为null就会中断这一层方法内的while循环
-	while (workInProgress !== null && unstable_shouldYield()) {
+	// unstable_shouldYield内部是定义了一个5毫秒的时间每次间隔5毫秒就会设置回true,然后又会设置回false
+	while (workInProgress !== null && !unstable_shouldYield()) {
 		performUnitOfWork(workInProgress);
 	}
 }

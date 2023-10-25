@@ -26,6 +26,7 @@ function App() {
 			<TabButton isActive={tab === 'contact'} onClick={() => selectTab('contact')}>
 				联系我
 			</TabButton>
+			{isPending ? 'pending' : 'notPending'}
 			<hr />
 			{tab === 'about' && <AboutTab />}
 			{tab === 'posts' && <PostsTab />}

@@ -399,7 +399,9 @@ function mountWorkInProgresHook(): Hook {
 }
 
 function mountTransition(): [boolean, (callback: () => void) => void] {
+	// 定义一个是否计算完的状态
 	const [isPending, setPending] = mountState(false);
+	// 生成一个新的hook为了保存一个开启并发更新任务的函数作为hook的返回值
 	const hook = mountWorkInProgresHook();
 	const start = startTransition.bind(null, setPending);
 	hook.memoizedState = start;
@@ -409,16 +411,20 @@ function mountTransition(): [boolean, (callback: () => void) => void] {
 
 function updateTransition(): [boolean, (callback: () => void) => void] {
 	const [isPending] = updateState();
+	// 获取之前保持的函数
 	const hook = updateWorkInProgresHook();
 	const start = hook.memoizedState;
 	return [isPending as boolean, start];
 }
 
+// 开启并发更新方法
 function startTransition(setPending: Dispatch<boolean>, callback: () => void) {
+	// 将状态设置为thue
 	setPending(true);
+	// 标记当前是transition,这回使得在获取优先级的时候直接返回transition的优先级
 	const prevTransition = currentBatchConfig.transition;
 	currentBatchConfig.transition = 1;
-
+	// 调用传入进来的回调函数,那么在函数内部的优先级就是同步更新
 	callback();
 	setPending(false);
 	currentBatchConfig.transition = prevTransition;
@@ -442,7 +448,7 @@ function dispatchSetState<State>(
 	// 创建一个update,将当前任务的优先级lane添加进去
 	const update = createUpdate(action, lane);
 	// 绑定update,enqueueUpdate方法支持多次添加会形成一个环状链表的结构,但更新多次调用的时候updateQueue会形成一个链表
-	// 这里的updateQueue其实是保存在hooks中的，当调用scheduleUpdateOnFiber会调度方法重新渲染，之后会从新执行useState的update方法，每部会消费掉当前的updateQueue
+	// 这里的updateQueue其实是保存在hooks中的，当调用scheduleUpdateOnFiber会调度方法重新渲染，之后会从新执行useState的update方法，每次会消费掉当前的updateQueue
 	enqueueUpdate(updateQueue, update);
 	// 执行调度,会重新调用renderRoot
 	scheduleUpdateOnFiber(fiber, lane);
