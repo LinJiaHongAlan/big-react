@@ -97,6 +97,7 @@ function reconileChildren(wip: FiberNode, children?: ReactElementType) {
 	}
 }
 
+// 标记Ref的方法
 function markRef(current: FiberNode | null, workInProgress: FiberNode) {
 	const ref = workInProgress.ref;
 
