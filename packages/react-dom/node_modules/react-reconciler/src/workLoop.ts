@@ -338,7 +338,7 @@ function commitRoot(root: fiberRootNode) {
 		// mutation Placement
 		commitMutationEffects(finishedWork, root);
 		root.current = finishedWork;
-		// layout 阶段
+		// layout 阶段在这里进行ref的绑定以及解绑操作
 		commitLayoutEffects(finishedWork, root);
 		// layout
 	} else {

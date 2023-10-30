@@ -72,6 +72,7 @@ function updateHostRoot(wip: FiberNode, renderLane: Lane) {
 function updateHostComponent(wip: FiberNode) {
 	const nextProps = wip.pendingProps;
 	const nextChildren = nextProps.children;
+	// 绑定ref
 	markRef(wip.alternate, wip);
 	reconileChildren(wip, nextChildren);
 	return wip.child;
@@ -97,11 +98,16 @@ function reconileChildren(wip: FiberNode, children?: ReactElementType) {
 	}
 }
 
-// 标记Ref的方法
+/**
+ * 在beginWork中标记Ref的方法
+ * @param current 上一次的FiberNode
+ * @param workInProgress 当前新的工作中的FiberNode
+ */
 function markRef(current: FiberNode | null, workInProgress: FiberNode) {
+	// 这里实际上就是从FiberNode节点上拿到ref的属性的值，也就是我们通常在标签上绑定的那个ref属性,而ref属性就是通过useRef返回的一个带有current属性的一个对象
 	const ref = workInProgress.ref;
 
-	// current=null意味着是mount时
+	// current为null意味着是mount时
 	if ((current === null && ref !== null) || (current !== null && current.ref !== ref)) {
 		workInProgress.flags |= Ref;
 	}
