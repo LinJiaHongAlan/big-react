@@ -17,3 +17,14 @@ export interface ReactElementType {
 
 // 表示Action是一个State对象或者是一个接收State对象的函数并且返回一个对象
 export type Action<State> = State | ((prevState: State) => State);
+
+export type ReactContext<T> = {
+	$$typeof: symbol | number;
+	Provider: ReactProviderType<T> | null;
+	_currentValue: T;
+};
+
+export type ReactProviderType<T> = {
+	$$typeof: symbol | number;
+	_context: ReactContext<T>;
+};

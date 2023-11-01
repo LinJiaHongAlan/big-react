@@ -3,7 +3,8 @@ export type WorkTag =
 	| typeof HostRoot
 	| typeof HostComponent
 	| typeof HostText
-	| typeof Fragment;
+	| typeof Fragment
+	| typeof ContextProvider;
 
 export const FunctionComponent = 0;
 // 项目挂载的根节点
@@ -16,3 +17,4 @@ export const HostComponent = 5;
 // 0110
 export const HostText = 6;
 export const Fragment = 7;
+export const ContextProvider = 8;

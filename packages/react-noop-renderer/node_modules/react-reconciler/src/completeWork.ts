@@ -6,7 +6,14 @@ import {
 	createTextInstance
 } from 'hostConfig';
 import { FiberNode } from './fiber';
-import { FunctionComponent, HostComponent, HostRoot, HostText, Fragment } from './workTags';
+import {
+	FunctionComponent,
+	HostComponent,
+	HostRoot,
+	HostText,
+	Fragment,
+	ContextProvider
+} from './workTags';
 import { NoFlags, Ref, Update } from './filberFlags';
 
 function markRef(fiber: FiberNode) {
@@ -74,6 +81,9 @@ export const completeWork = (wip: FiberNode) => {
 		case FunctionComponent:
 		case Fragment:
 			// flags冒泡
+			bubbleProperties(wip);
+			return null;
+		case ContextProvider:
 			bubbleProperties(wip);
 			return null;
 		default:
