@@ -12,7 +12,7 @@ import {
 	enqueueUpdate,
 	processUpdateQueue
 } from './updateQueue';
-import { Action } from 'shared/ReactTypes';
+import { Action, ReactContext } from 'shared/ReactTypes';
 import { scheduleUpdateOnFiber } from './workLoop';
 import { Lane, NoLane, requestUpdateLane } from './fiberLanes';
 import { HookHasEffect, Passive } from './hookEffectTags';
@@ -88,14 +88,16 @@ const HooksDispatcherOnMount: DisPatcher = {
 	useState: mountState,
 	useEffect: mountEffect,
 	useTransition: mountTransition,
-	useRef: mountRef
+	useRef: mountRef,
+	useContext: readContext
 };
 
 const HooksDispatcherOnUpdate: DisPatcher = {
 	useState: updateState,
 	useEffect: updateEffect,
 	useTransition: updateTransition,
-	useRef: updateRef
+	useRef: updateRef,
+	useContext: readContext
 };
 
 /**
@@ -452,4 +454,13 @@ function dispatchSetState<State>(
 	enqueueUpdate(updateQueue, update);
 	// 执行调度,会重新调用renderRoot
 	scheduleUpdateOnFiber(fiber, lane);
+}
+
+function readContext<T>(context: ReactContext<T>): T {
+	const consumer = currentlyRenderingFiber;
+	if (consumer === null) {
+		throw new Error('只能在函数组件中调用useContext');
+	}
+	const value = context._currentValue;
+	return value;
 }

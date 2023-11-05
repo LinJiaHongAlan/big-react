@@ -21,6 +21,9 @@ export function isValidElement(object: any) {
 	return typeof object === 'object' && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
 }
 
+// jsx方法是通过内部的babel转换来的，babel的type的转换规则为开头是小写明确没有.则为普通element，则type为字符串，如果开头是大写则视为组件那么type是一个变量
+// 例如<Abc> 会编译为 jsx(Abc(变量), { children: [] })   如果是<abc> = jsx('abc', { children: [] }) 如果存在点也会编译为变量
+// 例如<abc.n>=jax(abc.n, { children: [] }) context.Provider 实际上就是编译成 jsx(context.Provider, {})
 export const jsx = (type: ElementType, config: any, ...maybeChildren: any) => {
 	// 特殊处理key: Key = null;
 	let key: Key = null;

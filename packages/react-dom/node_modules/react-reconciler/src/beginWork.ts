@@ -13,6 +13,7 @@ import { mountChildFibers, reconcileChildFibers } from './childFibers';
 import { renderWithHooks } from './fiberHooks';
 import { Lane } from './fiberLanes';
 import { Ref } from './filberFlags';
+import { pushProvider } from './fiberContext';
 
 // 递归中的递阶段
 // beginWork的工作流程
@@ -42,12 +43,13 @@ export const beginWork = (wip: FiberNode, renderLane: Lane) => {
 	return null;
 };
 
+//
 function updateContextProvider(wip: FiberNode) {
 	const providerType = wip.type;
 	const context = providerType._context;
 	const newProps = wip.pendingProps;
 
-	// TODO
+	pushProvider(context, newProps.value);
 
 	const nextChildren = newProps.children;
 	// 拿到节点之后就会继续往下执行

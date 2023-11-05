@@ -245,7 +245,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		element: any
 	): FiberNode | null {
 		// 如果element中没有key就是index
-		const keyToUse = element.key !== null ? element.key : index;
+		const keyToUse = getElementKeyToUse(element, index);
 		// 从Map中找到原有的Fiber
 		let before;
 		// 如果是textNode
@@ -313,6 +313,19 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 			}
 		}
 		return null;
+	}
+
+	function getElementKeyToUse(element: any, index?: number): Key {
+		if (
+			Array.isArray(element) ||
+			typeof element === 'string' ||
+			typeof element === 'number' ||
+			element === undefined ||
+			element === null
+		) {
+			return index;
+		}
+		return element.key !== null ? element.key : index;
 	}
 
 	return function reconcileChildFibers(
