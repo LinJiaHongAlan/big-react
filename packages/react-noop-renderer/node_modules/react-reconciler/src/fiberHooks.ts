@@ -457,6 +457,9 @@ function dispatchSetState<State>(
 }
 
 function readContext<T>(context: ReactContext<T>): T {
+	// context对象实际上是独立存放起来的一个对象,但调用useContext的时候需要传入对应的context对象
+	// 这个context对象在使用的时候需要在节点的最外层通过<context.Provider></context.Provider>套进来那么在里面的节点的时候，内部的context对象保存的值都是外层传入的value值
+	// 因此使用useContext的时候直接返回传入的context的_currentValue就可以了
 	const consumer = currentlyRenderingFiber;
 	if (consumer === null) {
 		throw new Error('只能在函数组件中调用useContext');

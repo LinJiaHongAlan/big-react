@@ -1,4 +1,4 @@
-import { Action } from 'shared/ReactTypes';
+import { Action, ReactContext } from 'shared/ReactTypes';
 
 // 当前使用的hooks的集合
 export interface DisPatcher {
@@ -6,6 +6,7 @@ export interface DisPatcher {
 	useEffect: <T>(callback: (() => void) | void, deps: any[] | void) => void;
 	useTransition: () => [boolean, (callback: () => void) => void];
 	useRef: <T>(initialValue: T) => { current: T };
+	useContext: <T>(context: ReactContext<T>) => T;
 }
 
 export type Dispatch<State> = (action: Action<State>) => void;

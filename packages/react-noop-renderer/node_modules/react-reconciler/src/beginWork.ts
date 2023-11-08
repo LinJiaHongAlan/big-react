@@ -43,14 +43,20 @@ export const beginWork = (wip: FiberNode, renderLane: Lane) => {
 	return null;
 };
 
-//
+// 处理useContext
 function updateContextProvider(wip: FiberNode) {
+	// 这里的type值就是context.Provider在react的包下的context.ts中可以看到
+	// { $$typeof: REACT_PROVIDER_TYPE, _context: context }
 	const providerType = wip.type;
+	// 通过_context可以拿到context对象,context对象通过Provider又可以拿回providerType这是一个双向结构
+	// { $$typeof: REACT_CONTEXT_TYPE, Provider: null, _currentValue: defaultVaule }
 	const context = providerType._context;
+	// 传入进来的props
 	const newProps = wip.pendingProps;
-
+	// 拿到value属性，调用pushProvider，pushProvider会将value值保存到context._currentValue中
+	// 因为这里是beginWork所以经过的时候如果是context节点的时候必定是进入这个节点的阶段，相反如果是completeWork阶段必定是跳出这个节点的阶段
 	pushProvider(context, newProps.value);
-
+	// 拿到子节点
 	const nextChildren = newProps.children;
 	// 拿到节点之后就会继续往下执行
 	reconileChildren(wip, nextChildren);

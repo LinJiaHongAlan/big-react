@@ -85,7 +85,10 @@ export const completeWork = (wip: FiberNode) => {
 			bubbleProperties(wip);
 			return null;
 		case ContextProvider:
+			// 拿到当前节点的context对象
 			const context = wip.type._context;
+			// 因为这里是completeWork所以经过的时候如果是context节点的时候必定是跳出这个节点的阶段，相反如果是beginWork阶段必定是进入这个节点的阶段
+			// 因此这里需要调用popProvider，如果存在多层嵌套那么就会取到上一层的值赋值回当前的context._currentValue中,如果不存在就是赋值null
 			popProvider(context);
 			bubbleProperties(wip);
 			return null;
