@@ -2,6 +2,8 @@ import { DisPatcher, resolveDispatcher } from './src/currentDispatcher';
 import currentDispatcher from './src/currentDispatcher';
 import currentBatchConfig from './src/currentBatchConfig';
 import { jsxDEV, jsx, isValidElement as isValidElementFn } from './src/jsx';
+export { REACT_FRAGMENT_TYPE as Fragment } from 'shared/ReactSymbols';
+export { REACT_SUSPENSE_TYPE as Suspense } from 'shared/ReactSymbols';
 export { createContext } from './src/context';
 
 export const useState: DisPatcher['useState'] = (initialState: any) => {
