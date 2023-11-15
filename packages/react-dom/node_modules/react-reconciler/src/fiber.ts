@@ -158,7 +158,7 @@ export const createWorkInProgress = (current: FiberNode, pendingProps: Props): F
 	return wip;
 };
 
-// 根据element创建fiber
+// 根据element创建fiber,createFiberFromElement意味着通过这个方法创建出来的都具备对应的ReactElement节点,方式element都有对应的type
 export function createFiberFromElement(element: ReactElementType): FiberNode {
 	const { type, key, props, ref } = element;
 	// 根据不同的type来返回不同的FiberNode
@@ -186,5 +186,6 @@ export function createFiberFromFragment(elements: any[], key: Key): FiberNode {
 
 export function createFiberFromOffscreen(pendingProps: OffscreenProps): FiberNode {
 	const fiber = new FiberNode(OffscreenComponent, pendingProps, null);
+	// 这里创建出来的type为null
 	return fiber;
 }

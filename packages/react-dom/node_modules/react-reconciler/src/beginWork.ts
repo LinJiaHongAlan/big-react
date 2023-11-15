@@ -59,6 +59,7 @@ function updateSuspenseComponent(wip: FiberNode) {
 	const current = wip.alternate;
 	const nextProps = wip.pendingProps;
 
+	// 标识是否挂起
 	let showFallback = false;
 	const didSuspend = true;
 
@@ -119,6 +120,7 @@ function updateSuspensePrimaryChildren(wip: FiberNode, primaryChildren: any) {
 	return primaryChildFragment;
 }
 
+// update时候渲染挂起节点
 function updateSuspenseFallbackChildren(
 	wip: FiberNode,
 	primaryChildren: any,
@@ -128,17 +130,23 @@ function updateSuspenseFallbackChildren(
 		mode: 'hidden',
 		children: primaryChildren
 	};
+	// 拿到旧的节点
 	const current = wip.alternate as FiberNode;
+	// 这个child就可以拿到旧的正常节点,类型为Offscreen的FiberNode
 	const currentPrimaryChildFragment = current.child as FiberNode;
+	// 正常节点通过兄弟节点就可以拿到挂起节点，但是有可能挂载时就是正常导致挂起节点为null
 	const currentFallbackChildFragment: FiberNode | null = currentPrimaryChildFragment.sibling;
-
+	// 复用之前的节点传入props，生成新的正常节点类型为Offscreen的FiberNode
 	const primaryChildFragment = createWorkInProgress(currentPrimaryChildFragment, primaryChildProps);
 	let fallbackChildFragment;
 
 	if (currentFallbackChildFragment !== null) {
+		// 如果不为null直接复用
 		fallbackChildFragment = createWorkInProgress(currentFallbackChildFragment, fallbackChildren);
 	} else {
+		// 如果为null需要创建一个新的节点,并打上标记
 		fallbackChildFragment = createFiberFromFragment(fallbackChildren, null);
+		// Placement这个是移动或新增才有存在的标记,commit阶段会拿到FiberNode的真实节点以及兄弟节点来做对应的节点操作
 		fallbackChildFragment.flags |= Placement;
 	}
 	fallbackChildFragment.return = wip;
@@ -155,33 +163,45 @@ function mountSuspensePrimaryChildren(wip: FiberNode, primaryChildren: any) {
 		children: primaryChildren
 	};
 
+	// 这里因为挂载时就是正常节点所以没有必要先去渲染挂起节点fallbackChildFragment
+	// 只需要先渲染正常节点primaryChildFragment，类型为Offscreen的FiberNode
 	const primaryChildFragment = createFiberFromOffscreen(primaryChildProps);
-
+	// 与父节点建立链接
 	wip.child = primaryChildFragment;
 	primaryChildFragment.return = wip;
+	// 返回正常节点
 	return primaryChildFragment;
 }
 
+// 挂载时需要挂起
 function mountSuspenseFallbackChildren(
 	wip: FiberNode,
 	primaryChildren: any,
 	fallbackChildren: any
 ) {
+	// 这里的思路，先生成两个节点一个fallback变量内的节点用Fragment包裹租
+	// 另外一个是包裹主要的业务性质的子节点
 	const primaryChildProps: OffscreenProps = {
 		mode: 'hidden',
 		children: primaryChildren
 	};
 
+	// 正常节点，类型为Offscreen的FiberNode
 	const primaryChildFragment = createFiberFromOffscreen(primaryChildProps);
+	// 挂起节点，类型为Fragment的FiberNode
 	const fallbackChildFragment = createFiberFromFragment(fallbackChildren, null);
-
+	// 标记为需要操作的对象
 	fallbackChildFragment.flags |= Placement;
 
+	// 两个节点都指向父级
 	primaryChildFragment.return = wip;
 	fallbackChildFragment.return = wip;
+	// 将正常子节点的兄弟节点指向挂起的节点fallbackChildFragment
 	primaryChildFragment.sibling = fallbackChildFragment;
+	// 父节点的子节点指向fallbackChildFragment
 	wip.child = primaryChildFragment;
 
+	// 返回挂起的节点，这样beWork阶段下一个节点就会处理挂起的节点Fragment
 	return fallbackChildFragment;
 }
 
