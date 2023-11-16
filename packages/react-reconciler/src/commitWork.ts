@@ -4,7 +4,11 @@ import {
 	appendChildToContainer,
 	commitUpdate,
 	removeChild,
-	insertChildToContainer
+	insertChildToContainer,
+	hideInstance,
+	unhideInstance,
+	hideTextInstance,
+	unhideTextInstance
 } from 'hostConfig';
 import { FiberNode, PendingPassiveEffects, fiberRootNode } from './fiber';
 import {
@@ -16,9 +20,16 @@ import {
 	PassiveEffect,
 	Placement,
 	Ref,
-	Update
+	Update,
+	Visibility
 } from './filberFlags';
-import { FunctionComponent, HostComponent, HostRoot, HostText } from './workTags';
+import {
+	FunctionComponent,
+	HostComponent,
+	HostRoot,
+	HostText,
+	OffscreenComponent
+} from './workTags';
 import { Effect, FCUpdateQueue } from './fiberHooks';
 import { HookHasEffect } from './hookEffectTags';
 
@@ -105,7 +116,81 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode, root: fiberRootNo
 		// 移除标记
 		finishedWork.flags &= ~PassiveEffect;
 	}
+	if ((flags & Visibility) !== NoFlags && tag === OffscreenComponent) {
+		const isHidden = finishedWork.pendingProps.mode === 'hidden';
+		finishedWork.flags &= ~Visibility;
+	}
 };
+
+function hideOrUnhideAllChildren(finishedWork: FiberNode, isHidden: boolean) {
+	findHostSubtreeRoot(finishedWork, (HostRoot) => {
+		// 这里就拿到了hostRoot类型的节点
+		const instance = HostRoot.stateNode;
+		if (HostRoot.tag === HostComponent) {
+			isHidden ? hideInstance(instance) : unhideInstance(instance);
+		} else if (HostRoot.tag === HostText) {
+			isHidden
+				? hideTextInstance(instance)
+				: unhideTextInstance(instance, HostRoot.memoizedProps.content);
+		}
+	});
+}
+
+function findHostSubtreeRoot(
+	finishedWork: FiberNode,
+	callback: (hostSubtreeRoot: FiberNode) => void
+) {
+	let node = finishedWork;
+	let hostSubtreeRoot = null;
+
+	while (true) {
+		if (node.tag === HostComponent) {
+			if (hostSubtreeRoot === null) {
+				hostSubtreeRoot = node;
+				callback(node);
+			}
+		} else if (node.tag === HostText) {
+			if (hostSubtreeRoot === null) {
+				callback(node);
+			}
+		} else if (
+			node.tag === OffscreenComponent &&
+			node.pendingProps.mode === 'hidden' &&
+			node !== finishedWork
+		) {
+			// 嵌套的OffscreenComponent什么都做不做
+		} else if (node.child !== null) {
+			node.child.return = node;
+			node = node.child;
+			continue;
+		}
+
+		if (node === finishedWork) {
+			return;
+		}
+
+		while (node.sibling === null) {
+			if (node.return === null || node.return === finishedWork) {
+				return;
+			}
+
+			if (hostSubtreeRoot === node) {
+				// 这个时候已经离开了顶层的节点
+				hostSubtreeRoot = null;
+			}
+
+			node = node.return;
+		}
+
+		if (hostSubtreeRoot === node) {
+			// 这个时候已经离开了顶层的节点
+			hostSubtreeRoot = null;
+		}
+
+		node.sibling.return = node.return;
+		node = node.sibling;
+	}
+}
 
 // 解绑ref的方法，节点被销毁的时候需要调用到
 function safelyDetachRef(current: FiberNode) {

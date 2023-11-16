@@ -12,9 +12,11 @@ import {
 	HostRoot,
 	HostText,
 	Fragment,
-	ContextProvider
+	ContextProvider,
+	OffscreenComponent,
+	SuspenseComponent
 } from './workTags';
-import { NoFlags, Ref, Update } from './filberFlags';
+import { NoFlags, Ref, Update, Visibility } from './filberFlags';
 import { popProvider } from './fiberContext';
 
 function markRef(fiber: FiberNode) {
@@ -81,6 +83,7 @@ export const completeWork = (wip: FiberNode) => {
 		case HostRoot:
 		case FunctionComponent:
 		case Fragment:
+		case OffscreenComponent:
 			// flags冒泡
 			bubbleProperties(wip);
 			return null;
@@ -92,6 +95,28 @@ export const completeWork = (wip: FiberNode) => {
 			popProvider(context);
 			bubbleProperties(wip);
 			return null;
+		case SuspenseComponent:
+			// 比较的逻辑应该放在这里，因为如果一直是挂起状态的话completeWork是不会经过OffscreenComponent
+			const offscreenFiber = wip.child as FiberNode;
+			const isHidden = offscreenFiber.pendingProps.mode === 'hidden';
+			const currentOffscreenFiber = offscreenFiber.alternate;
+
+			if (currentOffscreenFiber !== null) {
+				// update流程
+				const wasHidden = currentOffscreenFiber.pendingProps.mode === 'hidden';
+				if (isHidden !== wasHidden) {
+					offscreenFiber.flags |= Visibility;
+					// 冒泡的是自组件
+					bubbleProperties(offscreenFiber);
+				}
+			} else if (isHidden) {
+				offscreenFiber.flags |= Visibility;
+				// 冒泡的是自组件
+				bubbleProperties(offscreenFiber);
+			}
+			// 完成以后SuspenseComponent自己也要冒泡一下
+			bubbleProperties(wip);
+			return;
 		default:
 			if (__DEV__) {
 				console.warn('未处理的completeWork情况', wip);

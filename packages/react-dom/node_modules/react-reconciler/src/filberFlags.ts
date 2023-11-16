@@ -12,9 +12,10 @@ export const ChildDeletion = 0b0000100;
 // 至于本次更新存在哪一种副作用需要通过hookEffectTags下的tag来决定
 export const PassiveEffect = 0b000100000;
 export const Ref = 0b0001000000;
+export const Visibility = 0b0010000000;
 
 // 代表了mutation阶段需要执行的操作
-export const MutationMask = Placement | Update | ChildDeletion | Ref;
+export const MutationMask = Placement | Update | ChildDeletion | Ref | Visibility;
 export const LayoutMask = Ref;
 
 // 代表了本次更新要出发useEffect
