@@ -73,7 +73,7 @@ function schedule() {
 	if (curPriority === prevPriority) {
 		return;
 	}
-	// 因为curPriority拿到的一定是curWork中最高的优先级，如果逻辑能走到这里证明curPriority > prevPriority
+	// 因为curPriority拿到的一定是curWork中最高的优先级，如果逻辑能走到这里证明curPriority < prevPriority(数字越小优先级越大)
 	// 当发现有更高优先级,并且cbNode存在证明有宏任务调度未执行完，那么取消当前正准备执行的宏任务
 	// 因为当前未将work移出所以执行完优先级更高的任务之后依旧会执行剩余的任务
 	cbNode && cancelCallback(cbNode);
