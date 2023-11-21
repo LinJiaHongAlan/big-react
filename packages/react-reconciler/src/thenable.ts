@@ -31,10 +31,11 @@ export function trackUsedThenable<T>(thenable: Thenable<T>) {
 		default:
 			// Promise初始状态不具备status这个字段
 			if (typeof thenable.status === 'string') {
+				// 第一次用户传入一个普通得到Promise的时候是不具有status的
+				// 此时意味着已经包装过了，所以可以什么都不干
 				thenable.then(noop, noop);
 			} else {
-				// untracked
-
+				// 进入这里意味着用户是第一次进来，证明当前还是属于untracked的状态
 				// 设置为pending状态
 				const pending = thenable as unknown as PendingThenable<T, void, any>;
 				// 往Promise上添加添加status状态属性

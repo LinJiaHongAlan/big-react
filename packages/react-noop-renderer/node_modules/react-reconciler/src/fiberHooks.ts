@@ -474,7 +474,7 @@ function readContext<T>(context: ReactContext<T>): T {
 
 /**
  *
- * @param usable 传入的是一个Promise或者是一个context
+ * @param usable 这里可以接收联众类型 Thenable可以理解为Promise类型，以及ReactContext
  * @returns
  */
 function use<T>(usable: Usable<T>): T {
@@ -483,12 +483,21 @@ function use<T>(usable: Usable<T>): T {
 		if (typeof (usable as Thenable<T>).then === 'function') {
 			// 进入到这里证明是一个Promise
 			const thenable = usable as Thenable<T>;
+			// 如果传入进来的是一个Promise
 			return trackUsedThenable(thenable);
 		} else if ((usable as ReactContext<T>).$$typeof === REACT_CONTEXT_TYPE) {
-			// 证明是一个CONTEXT
+			// 证明是一个ReactContext
 			const context = usable as ReactContext<T>;
+			// 调用readContext方法会返回context._value
 			return readContext(context);
 		}
 	}
 	throw new Error('不支持的use参数' + usable);
+}
+
+// 准备开启unwind流程，需要重置hook全局变量
+export function resetHooksOnUnwind() {
+	currentlyRenderingFiber = null;
+	currentHook = null;
+	workInProgressHook = null;
 }

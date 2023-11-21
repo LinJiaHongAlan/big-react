@@ -29,12 +29,15 @@ export type ReactProviderType<T> = {
 	_context: ReactContext<T>;
 };
 
+// hook->use接收的类型，一共有两种类型
+// Thenable是包装过的Promise
 export type Usable<T> = Thenable<T> | ReactContext<T>;
 
 export interface Wakeable<Result> {
 	then(onFulfilled: () => Result, onRejected: () => Result): void | Wakeable<Result>;
 }
 
+// 这里其实描述的就是一个Promise包装后的对象，ThenableImpl是一个积累，后面有4中状态继承这个基类
 // untracked还没有最终到的状态
 // pending
 // fulfilled -> reslve

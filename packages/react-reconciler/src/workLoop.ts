@@ -30,6 +30,8 @@ import {
 	unstable_cancelCallback
 } from 'scheduler';
 import { HookHasEffect, Passive } from './hookEffectTags';
+import { SuspenseException, getSuspenseThenable } from './thenable';
+import { resetHooksOnUnwind } from './fiberHooks';
 
 // 我们这里需要一个全局的指针来指向当前工作的FiberNode
 let workInProgress: FiberNode | null = null;
@@ -42,6 +44,15 @@ type RootExitStatus = number;
 const RootInComplete: RootExitStatus = 1;
 // 代表执行完了
 const RootCompleted: RootExitStatus = 2;
+
+// Suspen为什么被挂起的原因
+type SuspendedReason = typeof NotSuspended | typeof SuspendedOnData;
+// 没挂起
+const NotSuspended = 0;
+// 由于请求数据挂起
+const SuspendedOnData = 1;
+let wipSuspendedReason: SuspendedReason = NotSuspended;
+let wipThrownValue: any = null;
 
 // 初始化workInProgress
 function prepareFreshStack(root: fiberRootNode, lane: Lane) {
@@ -252,6 +263,14 @@ function renderRoot(root: fiberRootNode, lane: Lane, shouldTimeSlice: boolean) {
 	// 执行递归流程
 	do {
 		try {
+			if (wipSuspendedReason !== NotSuspended && workInProgress !== null) {
+				// 意味着现在是挂起状态
+				const thownvalue = wipThrownValue;
+				wipSuspendedReason = NotSuspended;
+				wipThrownValue = null;
+				// 进入到unwind流程;
+			}
+
 			shouldTimeSlice ? workLoopConcurrent() : workLoopSync();
 			// 没有问题这里会直接跳出,到这个阶段的workInProgress已经遍历完，workInProgress会指向null
 			break;
@@ -259,8 +278,8 @@ function renderRoot(root: fiberRootNode, lane: Lane, shouldTimeSlice: boolean) {
 			if (__DEV__) {
 				console.warn('workLoop发生错误');
 			}
-			// 改变指针
-			workInProgress = null;
+			// 捕获到错误，需要处理,当进入这里之后while还是会继续执行因此可以在try哪里捕获到当前的状态
+			handleThrow(root, e);
 		}
 	} while (true);
 
@@ -276,6 +295,31 @@ function renderRoot(root: fiberRootNode, lane: Lane, shouldTimeSlice: boolean) {
 	}
 	// TODO 报错
 	return RootCompleted;
+}
+
+// unitOfWork是的当前挂起的Fiber节点
+function throwAndUnwindWorkLoop(
+	root: fiberRootNode,
+	unitOfWork: FiberNode,
+	thrownValue: any,
+	lane: Lane
+) {
+	// 重置 FC 全局变量
+	resetHooksOnUnwind();
+	// 请求返回后重新触发更新
+	// unwind
+}
+
+// render过程中跑出的错误都在这里处理
+function handleThrow(root: fiberRootNode, thrownValue: any) {
+	// Error Boundary
+
+	if (thrownValue === SuspenseException) {
+		// Suspense相关的错误,拿到thenable这个对象
+		thrownValue = getSuspenseThenable();
+		wipSuspendedReason = SuspendedOnData;
+	}
+	wipThrownValue = thrownValue;
 }
 
 function commitRoot(root: fiberRootNode) {
