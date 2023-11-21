@@ -2,6 +2,7 @@ import { DisPatcher, resolveDispatcher } from './src/currentDispatcher';
 import currentDispatcher from './src/currentDispatcher';
 import currentBatchConfig from './src/currentBatchConfig';
 import { jsxDEV, jsx, isValidElement as isValidElementFn } from './src/jsx';
+import { Usable } from 'shared/ReactTypes';
 export { REACT_FRAGMENT_TYPE as Fragment } from 'shared/ReactSymbols';
 export { REACT_SUSPENSE_TYPE as Suspense } from 'shared/ReactSymbols';
 export { createContext } from './src/context';
@@ -24,6 +25,11 @@ export const useRef: DisPatcher['useRef'] = (initialValue) => {
 export const useContext: DisPatcher['useContext'] = (context) => {
 	const dispatcher = resolveDispatcher();
 	return dispatcher.useContext(context);
+};
+
+export const use: DisPatcher['use'] = <T>(useable: Usable<T>) => {
+	const dispatcher = resolveDispatcher();
+	return dispatcher.use(useable);
 };
 
 export const useTransition: DisPatcher['useTransition'] = () => {

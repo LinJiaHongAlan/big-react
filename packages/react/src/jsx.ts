@@ -28,6 +28,7 @@ export const jsx = (type: ElementType, config: any, ...maybeChildren: any) => {
 	// 特殊处理key: Key = null;
 	let key: Key = null;
 	const props: Props = {};
+	// @ts-ignore
 	let ref: Ref = null;
 
 	// 处理config
@@ -68,6 +69,7 @@ export const Fragment = REACT_FRAGMENT_TYPE;
 
 export const jsxDEV = (type: ElementType, config: any, maybeKey: Key) => {
 	const props: Props = {};
+	// @ts-ignore
 	let ref: Ref = null;
 
 	// key的默认值是null

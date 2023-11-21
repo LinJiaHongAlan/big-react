@@ -17,6 +17,11 @@ export function getSuspenseThenable(): Thenable<any> {
 
 function noop() {}
 
+/**
+ *
+ * @param thenable 是一个Promise
+ * @returns
+ */
 export function trackUsedThenable<T>(thenable: Thenable<T>) {
 	switch (thenable.status) {
 		case 'fulfilled':
@@ -24,20 +29,25 @@ export function trackUsedThenable<T>(thenable: Thenable<T>) {
 		case 'rejected':
 			throw thenable.reason;
 		default:
+			// Promise初始状态不具备status这个字段
 			if (typeof thenable.status === 'string') {
 				thenable.then(noop, noop);
 			} else {
 				// untracked
 
-				// pending
+				// 设置为pending状态
 				const pending = thenable as unknown as PendingThenable<T, void, any>;
+				// 往Promise上添加添加status状态属性
 				pending.status = 'pending';
+				// 监听Promise的响应,更高status状态并保存正常与异常响应的值
 				pending.then(
 					(val) => {
 						if (pending.status === 'pending') {
 							// @ts-ignore
 							const fulfilled: FulfilledThenable<T, void, any> = pending;
+							// 改为正常结束状态
 							fulfilled.status = 'fulfilled';
+							// val是结果赋值给fulfilled.value,实际上也就是赋值给最初传入进来的Promise(thenable).value
 							fulfilled.value = val;
 						}
 					},
@@ -45,7 +55,9 @@ export function trackUsedThenable<T>(thenable: Thenable<T>) {
 						if (pending.status === 'pending') {
 							// @ts-ignore
 							const rejected: RejectedThenable<T, void, any> = pending;
+							// 改为为异常结束状态
 							rejected.status = 'rejected';
+							// 保存异常信息
 							rejected.reason = err;
 						}
 					}

@@ -472,16 +472,23 @@ function readContext<T>(context: ReactContext<T>): T {
 	return value;
 }
 
+/**
+ *
+ * @param usable 传入的是一个Promise或者是一个context
+ * @returns
+ */
 function use<T>(usable: Usable<T>): T {
 	if (usable !== null && typeof usable === 'object') {
+		// 判断是不是一个Promise
 		if (typeof (usable as Thenable<T>).then === 'function') {
-			// thenable
+			// 进入到这里证明是一个Promise
 			const thenable = usable as Thenable<T>;
 			return trackUsedThenable(thenable);
 		} else if ((usable as ReactContext<T>).$$typeof === REACT_CONTEXT_TYPE) {
+			// 证明是一个CONTEXT
 			const context = usable as ReactContext<T>;
 			return readContext(context);
 		}
 	}
-	throw new Error('不支持的use参数', usable);
+	throw new Error('不支持的use参数' + usable);
 }
