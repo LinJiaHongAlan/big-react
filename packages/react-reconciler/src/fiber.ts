@@ -1,4 +1,4 @@
-import { Props, Key, Ref, ReactElementType } from 'shared/ReactTypes';
+import { Props, Key, Ref, ReactElementType, Wakeable } from 'shared/ReactTypes';
 import {
 	FunctionComponent,
 	HostComponent,
@@ -109,6 +109,8 @@ export class fiberRootNode {
 	pendingPassiveEffects: PendingPassiveEffects;
 	callbackNode: CallbackNode | null;
 	callbackPriority: Lane;
+	// ping的缓存(WeakMap是原生的属性，类似于对象的key，value，这个在vue的响应式数据的依赖收集的表也是用的这个)
+	pingCache: WeakMap<Wakeable<any>, Set<Lane>> | null;
 
 	constructor(container: Container, hostRootFiber: FiberNode) {
 		this.container = container;
@@ -123,6 +125,7 @@ export class fiberRootNode {
 			unmount: [],
 			update: []
 		};
+		this.pingCache = null;
 	}
 }
 

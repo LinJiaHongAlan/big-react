@@ -32,6 +32,7 @@ import {
 import { HookHasEffect, Passive } from './hookEffectTags';
 import { SuspenseException, getSuspenseThenable } from './thenable';
 import { resetHooksOnUnwind } from './fiberHooks';
+import { throwException } from './fiberThrow';
 
 // 我们这里需要一个全局的指针来指向当前工作的FiberNode
 let workInProgress: FiberNode | null = null;
@@ -78,7 +79,7 @@ export function scheduleUpdateOnFiber(fiber: FiberNode, lane: Lane) {
 	ensureRootIsScheduled(root);
 }
 
-function ensureRootIsScheduled(root: fiberRootNode) {
+export function ensureRootIsScheduled(root: fiberRootNode) {
 	// 从待处理的Lanes集合中获取优先级最高的Lane
 	const updateLane = getHighesPriorityLane(root.pendingLanes);
 	const existingCallback = root.callbackNode;
@@ -135,7 +136,7 @@ function ensureRootIsScheduled(root: fiberRootNode) {
 }
 
 // 添加优先级
-function markRootUpdateed(root: fiberRootNode, lane: Lane) {
+export function markRootUpdateed(root: fiberRootNode, lane: Lane) {
 	// mergeLanes是按位或操作，合并集合
 	root.pendingLanes = mergeLanes(root.pendingLanes, lane);
 }
@@ -265,10 +266,11 @@ function renderRoot(root: fiberRootNode, lane: Lane, shouldTimeSlice: boolean) {
 		try {
 			if (wipSuspendedReason !== NotSuspended && workInProgress !== null) {
 				// 意味着现在是挂起状态
-				const thownvalue = wipThrownValue;
+				const thrownvalue = wipThrownValue;
 				wipSuspendedReason = NotSuspended;
 				wipThrownValue = null;
 				// 进入到unwind流程;
+				throwAndUnwindWorkLoop(root, workInProgress, thrownvalue, lane);
 			}
 
 			shouldTimeSlice ? workLoopConcurrent() : workLoopSync();
@@ -307,6 +309,7 @@ function throwAndUnwindWorkLoop(
 	// 重置 FC 全局变量
 	resetHooksOnUnwind();
 	// 请求返回后重新触发更新
+	throwException(root, thrownValue, lane);
 	// unwind
 }
 
