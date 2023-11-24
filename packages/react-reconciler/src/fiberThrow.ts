@@ -3,6 +3,8 @@
 import { Wakeable } from 'shared/ReactTypes';
 import { fiberRootNode } from './fiber';
 import { Lane } from './fiberLanes';
+import { ShouldCapture } from './filberFlags';
+import { getSuspenseHandler } from './suspenseContext';
 import { ensureRootIsScheduled, markRootUpdateed } from './workLoop';
 
 export function throwException(root: fiberRootNode, value: any, lane: Lane) {
@@ -16,6 +18,12 @@ export function throwException(root: fiberRootNode, value: any, lane: Lane) {
 		// wakeable就是唤醒的意思，此时就是要唤醒一次新的更新
 		// 所以wakeable跟thenable都是包装好的Promise，只是应用在不同的场景
 		const wakeable: Wakeable<any> = value;
+
+		const suspenseBoundary = getSuspenseHandler();
+		if (suspenseBoundary) {
+			suspenseBoundary.flags |= ShouldCapture;
+		}
+
 		attachPingListener(root, wakeable, lane);
 	}
 }

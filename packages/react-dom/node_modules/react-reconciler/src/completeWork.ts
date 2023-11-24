@@ -18,6 +18,7 @@ import {
 } from './workTags';
 import { NoFlags, Ref, Update, Visibility } from './filberFlags';
 import { popProvider } from './fiberContext';
+import { popSuspenseHandler } from './suspenseContext';
 
 function markRef(fiber: FiberNode) {
 	fiber.flags |= Ref;
@@ -96,6 +97,7 @@ export const completeWork = (wip: FiberNode) => {
 			bubbleProperties(wip);
 			return null;
 		case SuspenseComponent:
+			popSuspenseHandler();
 			// 比较的逻辑应该放在这里，因为如果一直是挂起状态的话completeWork是不会经过OffscreenComponent
 			const offscreenFiber = wip.child as FiberNode;
 			const isHidden = offscreenFiber.pendingProps.mode === 'hidden';

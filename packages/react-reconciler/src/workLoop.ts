@@ -33,6 +33,7 @@ import { HookHasEffect, Passive } from './hookEffectTags';
 import { SuspenseException, getSuspenseThenable } from './thenable';
 import { resetHooksOnUnwind } from './fiberHooks';
 import { throwException } from './fiberThrow';
+import { unwindWork } from './fiberUnwindWork';
 
 // 我们这里需要一个全局的指针来指向当前工作的FiberNode
 let workInProgress: FiberNode | null = null;
@@ -266,17 +267,17 @@ function renderRoot(root: fiberRootNode, lane: Lane, shouldTimeSlice: boolean) {
 		try {
 			if (wipSuspendedReason !== NotSuspended && workInProgress !== null) {
 				// 意味着现在是挂起状态
-				const thrownvalue = wipThrownValue;
+				const thrownValue = wipThrownValue;
 				wipSuspendedReason = NotSuspended;
 				wipThrownValue = null;
 				// 进入到unwind流程;
-				throwAndUnwindWorkLoop(root, workInProgress, thrownvalue, lane);
+				throwAndUnwindWorkLoop(root, workInProgress, thrownValue, lane);
 			}
-
 			shouldTimeSlice ? workLoopConcurrent() : workLoopSync();
 			// 没有问题这里会直接跳出,到这个阶段的workInProgress已经遍历完，workInProgress会指向null
 			break;
 		} catch (e) {
+			console.log(e);
 			if (__DEV__) {
 				console.warn('workLoop发生错误');
 			}
@@ -311,6 +312,31 @@ function throwAndUnwindWorkLoop(
 	// 请求返回后重新触发更新
 	throwException(root, thrownValue, lane);
 	// unwind
+	unwindUnitOfWork(unitOfWork);
+}
+
+function unwindUnitOfWork(unitOfWork: FiberNode) {
+	let incomplteWork: FiberNode | null = unitOfWork;
+
+	do {
+		const next = unwindWork(incomplteWork);
+		// 如果next不等于null，就相当我们找到了对应的Suspense
+		if (next !== null) {
+			workInProgress = next;
+			return;
+		}
+
+		const returnFiber = incomplteWork.return as FiberNode;
+		if (returnFiber !== null) {
+			// 清除删除标记
+			returnFiber.deletions = null;
+		}
+		incomplteWork = returnFiber;
+	} while (incomplteWork !== null);
+
+	// 使用了 use, 抛出了 data, 但是没有定义suspense
+	// 到了root
+	workInProgress = null;
 }
 
 // render过程中跑出的错误都在这里处理
