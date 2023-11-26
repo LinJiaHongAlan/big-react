@@ -69,7 +69,7 @@ export const scheduleMicroTask =
 // 隐藏
 export function hideInstance(instance: Instance) {
 	const style = (instance as HTMLElement).style;
-	style.setProperty('displat', 'none', 'important');
+	style.setProperty('display', 'none', 'important');
 }
 
 export function unhideInstance(instance: Instance) {
@@ -77,10 +77,10 @@ export function unhideInstance(instance: Instance) {
 	style.display = '';
 }
 
-export function hideTextInstance(textInstance: Instance) {
+export function hideTextInstance(textInstance: TextInstance) {
 	textInstance.nodeValue = '';
 }
 
-export function unhideTextInstance(textInstance: Instance, text: string) {
+export function unhideTextInstance(textInstance: TextInstance, text: string) {
 	textInstance.nodeValue = text;
 }

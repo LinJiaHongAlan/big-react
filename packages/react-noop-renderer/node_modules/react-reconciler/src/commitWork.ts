@@ -118,6 +118,7 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode, root: fiberRootNo
 	}
 	if ((flags & Visibility) !== NoFlags && tag === OffscreenComponent) {
 		const isHidden = finishedWork.pendingProps.mode === 'hidden';
+		hideOrUnhideAllChildren(finishedWork, isHidden);
 		finishedWork.flags &= ~Visibility;
 	}
 };
