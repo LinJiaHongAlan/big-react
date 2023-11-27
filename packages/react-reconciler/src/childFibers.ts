@@ -385,6 +385,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 
 // 复用的方法
 function useFiber(fiber: FiberNode, pendingProps: Props): FiberNode {
+	console.log('kjhgkdfhgk', fiber, pendingProps);
 	// 克隆一个fiber
 	const clone = createWorkInProgress(fiber, pendingProps);
 	// 索引赋值为0

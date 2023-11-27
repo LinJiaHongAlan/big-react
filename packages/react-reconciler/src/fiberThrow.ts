@@ -34,6 +34,7 @@ function attachPingListener(root: fiberRootNode, wakeable: Wakeable<any>, lane: 
 	// 线程id
 	let threadIDs: Set<Lane> | undefined;
 
+	// WeakMap{ wakeable: Set[lane1, lane2, ...]}
 	if (pingCache === null) {
 		threadIDs = new Set<Lane>();
 		pingCache = root.pingCache = new WeakMap<Wakeable<any>, Set<Lane>>();
@@ -59,6 +60,7 @@ function attachPingListener(root: fiberRootNode, wakeable: Wakeable<any>, lane: 
 			// 添加优先级（相同优先级更新不会引起变化）
 			markRootUpdateed(root, lane);
 			// 调用renderRoot开始跟新
+			console.log('调用renderRoot开始跟新');
 			ensureRootIsScheduled(root);
 		}
 		wakeable.then(ping, ping);

@@ -132,6 +132,7 @@ export class fiberRootNode {
 // current也就是hostRootFiber
 // 这里用到了双缓存技术，
 export const createWorkInProgress = (current: FiberNode, pendingProps: Props): FiberNode => {
+	console.log('kjhgkdfhgk', current, pendingProps);
 	let wip = current.alternate;
 
 	if (wip === null) {
