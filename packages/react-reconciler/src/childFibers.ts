@@ -360,7 +360,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 				case REACT_ELEMENT_TYPE:
 					// 根据newChild生成一个新的FiberNode并且指向returnFiber，如果是首次渲染的话会直接给flags加上Placement标记
 					// reconcileSingleElement方法返回的是currentFiber的子节点也就是currentFiber.child
-					// placeSingleChild这里如果有追踪副作用的情况下会添加插入的标记Placement(给currentFiber.child添加)
+					// placeSingleChild这里如果有追踪副作用的情况下(其实就是在update时)会添加插入的标记Placement(给currentFiber.child添加)
 					// 也就是说HostRoot的子节点在首次渲染的时候会添加Placement标记
 					return placeSingleChild(reconcileSingleElement(returnFiber, currentFiber, newChild));
 			}

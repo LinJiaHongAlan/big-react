@@ -60,15 +60,19 @@ function updateSuspenseComponent(wip: FiberNode) {
 	const current = wip.alternate;
 	const nextProps = wip.pendingProps;
 
-	// 标识是否挂起
+	// 我们需要一个变量用来判断当前是正常流程还是挂起流程
+	// showFallback这个用来表示是否需要展示Fallback
 	let showFallback = false;
+	// 定义一个变量表示当前是不是挂起的状态,如果为true表示挂起
 	const didSuspend = (wip.flags & DidCapture) !== NoFlags;
 
 	if (didSuspend) {
+		// 表示挂起
 		showFallback = true;
 		wip.flags &= ~DidCapture;
 	}
 
+	// 这里表示OffScreen跟Fallback的两个子节点，也就是真实需要展示的两个内容
 	const nextPrimaryChildren = nextProps.children;
 	const nextFallbackChildren = nextProps.fallback;
 

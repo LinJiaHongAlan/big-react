@@ -41,7 +41,7 @@ function attachPingListener(root: fiberRootNode, wakeable: Wakeable<any>, lane: 
 	} else {
 		threadIDs = pingCache.get(wakeable);
 		if (threadIDs === undefined) {
-			// 没有换成
+			// 没有换成，这里每一个lane就代表一个可以ping的Suspense
 			threadIDs = new Set<Lane>();
 			pingCache.set(wakeable, threadIDs);
 		}

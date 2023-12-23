@@ -346,6 +346,7 @@ function handleThrow(root: fiberRootNode, thrownValue: any) {
 	if (thrownValue === SuspenseException) {
 		// Suspense相关的错误,拿到thenable这个对象
 		thrownValue = getSuspenseThenable();
+		// 保存捕获的错误原因SuspendedOnData表示请求数据导致挂起
 		wipSuspendedReason = SuspendedOnData;
 	}
 	wipThrownValue = thrownValue;

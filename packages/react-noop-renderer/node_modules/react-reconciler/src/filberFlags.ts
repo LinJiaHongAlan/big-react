@@ -12,6 +12,7 @@ export const ChildDeletion = 0b0000100;
 // 至于本次更新存在哪一种副作用需要通过hookEffectTags下的tag来决定
 export const PassiveEffect = 0b000100000;
 export const Ref = 0b0001000000;
+// 表示OffScreen有变化
 export const Visibility = 0b0010000000;
 export const DidCapture = 0b0100000000;
 

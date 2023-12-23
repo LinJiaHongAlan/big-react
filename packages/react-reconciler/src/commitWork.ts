@@ -116,16 +116,20 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode, root: fiberRootNo
 		// 移除标记
 		finishedWork.flags &= ~PassiveEffect;
 	}
+	// 出现Visibilit意味着offscreenFiber的状态发生了变化
 	if ((flags & Visibility) !== NoFlags && tag === OffscreenComponent) {
 		const isHidden = finishedWork.pendingProps.mode === 'hidden';
+		// 找到最顶层的HostComponent根节点，并根据isHidden的状态设置根节点的显示隐藏
 		hideOrUnhideAllChildren(finishedWork, isHidden);
 		finishedWork.flags &= ~Visibility;
 	}
 };
 
 function hideOrUnhideAllChildren(finishedWork: FiberNode, isHidden: boolean) {
+	// findHostSubtreeRoot这个方法是遍历节点并通过钩子，找到最顶层的HostComponent根节点。
 	findHostSubtreeRoot(finishedWork, (HostRoot) => {
-		// 这里就拿到了hostRoot类型的节点
+		// 这里就拿到了顶部的Host类型HostText以及的节点,也就是文本节点跟dom节点，分别实现这两个节点的显示因此的dom操作方法
+		// 根据pendingProps.mode中的状态去决定显示以及隐藏
 		const instance = HostRoot.stateNode;
 		if (HostRoot.tag === HostComponent) {
 			isHidden ? hideInstance(instance) : unhideInstance(instance);
@@ -142,16 +146,23 @@ function findHostSubtreeRoot(
 	callback: (hostSubtreeRoot: FiberNode) => void
 ) {
 	let node = finishedWork;
+	// 定义一个变量用来保存host节点
 	let hostSubtreeRoot = null;
 
 	while (true) {
+		// 这里是处理遍历逻辑的地方
+		// 判断是不是host类型节点
 		if (node.tag === HostComponent) {
 			if (hostSubtreeRoot === null) {
+				// 如果hostSubtreeRoot === null意味着没有保存过，那么这个就是第一个碰到的host类型的节点，也就是最顶部的节点
+				// 保存起来
 				hostSubtreeRoot = node;
+				// 调用回调
 				callback(node);
 			}
 		} else if (node.tag === HostText) {
 			if (hostSubtreeRoot === null) {
+				// 如果是text节点，同样调用回调但是不保存到hostSubtreeRoot
 				callback(node);
 			}
 		} else if (
@@ -159,27 +170,40 @@ function findHostSubtreeRoot(
 			node.pendingProps.mode === 'hidden' &&
 			node !== finishedWork
 		) {
-			// 嵌套的OffscreenComponent什么都做不做
+			// 进入这个条件的情况有一种可能就是有Suspense里面还有一个Suspense
+			// 这种情况什么都做不做，因此这里就不会进入node.child !== null的判断旧不会继续往下遍历，而会开始判断是否存在兄弟节点
 		} else if (node.child !== null) {
+			// 这里为什么是else if呢?
+			// 因为这里的深度优先遍历目的只是想找到顶部的host根节点，但是这个节点可能是组件的节点，而不是host根节点，所以我们需要一个遍历不断的往下找直到找到第一个之后，这里就不会继续往下找子节点了
+			// 但是上面的情况我们不会使用continue跳出去，所以他会继续判断是否有兄弟节点，如果存在兄弟节点的话又会继续找出兄弟节点的顶部根节点
+			// 这一步是向下遍历子级节点
 			node.child.return = node;
 			node = node.child;
+			// 在这里会跳出while,意味着如果存在子节点就不会走后面的逻辑
 			continue;
 		}
 
 		if (node === finishedWork) {
+			// 退出条件
 			return;
 		}
 
+		// 不存在子节点的情况下，判断是否有兄弟节点
 		while (node.sibling === null) {
+			// 如果没有那么往上找，直到回到原来最开始的节点
 			if (node.return === null || node.return === finishedWork) {
+				// 父节点不存在或者是回到了最开始的地方，这里其实传入的finishedWork就是offscreenFiber
+				// 正常情况下结束的条件都是node.return === finishedWork
 				return;
 			}
 
 			if (hostSubtreeRoot === node) {
-				// 这个时候已经离开了顶层的节点
+				// 进入这里的情况表示在上面的判断中，进入了node.tag === HostComponent找到了第一个顶部的host节点
+				// 准备离开的时候我们需要将hostSubtreeRoot重置一下
 				hostSubtreeRoot = null;
 			}
 
+			// 如果存在父节点继续往上，这样一来如果父节点存在兄弟节点的话，那么就会跳出当前的while循环
 			node = node.return;
 		}
 
@@ -188,6 +212,7 @@ function findHostSubtreeRoot(
 			hostSubtreeRoot = null;
 		}
 
+		// 到这里意味着当前节点存在兄弟节点就会赋值到兄弟节点，然后下一个循环开始又会判断node.sibling是否存在子节点
 		node.sibling.return = node.return;
 		node = node.sibling;
 	}

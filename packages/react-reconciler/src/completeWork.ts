@@ -33,7 +33,7 @@ export const completeWork = (wip: FiberNode) => {
 	// 递归中的归
 
 	const newProps = wip.pendingProps;
-	// 这里那上一个值，新的值在begin阶段就已经更新好了
+	// 这里拿上一个值，新的值在begin阶段就已经更新好了
 	const current = wip.alternate;
 
 	switch (wip.tag) {
@@ -106,7 +106,9 @@ export const completeWork = (wip: FiberNode) => {
 			if (currentOffscreenFiber !== null) {
 				// update流程
 				const wasHidden = currentOffscreenFiber.pendingProps.mode === 'hidden';
+				// 这个地方判断offscreenFiber的状态是否发生了变化
 				if (isHidden !== wasHidden) {
+					// 如果发生了变化添加Visibility标记
 					offscreenFiber.flags |= Visibility;
 					// 冒泡的是自组件
 					bubbleProperties(offscreenFiber);
@@ -116,7 +118,7 @@ export const completeWork = (wip: FiberNode) => {
 				// 冒泡的是自组件
 				bubbleProperties(offscreenFiber);
 			}
-			// 完成以后SuspenseComponent自己也要冒泡一下
+			// SuspenseComponent是offscreenFiber的父节点上面将offscreenFiber完成了冒泡，其实就是冒泡到SuspenseComponent，完成以后SuspenseComponent自己也要冒泡一下
 			bubbleProperties(wip);
 			return;
 		default:
