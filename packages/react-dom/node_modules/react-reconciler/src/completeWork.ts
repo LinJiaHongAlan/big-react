@@ -110,7 +110,7 @@ export const completeWork = (wip: FiberNode) => {
 				if (isHidden !== wasHidden) {
 					// 如果发生了变化添加Visibility标记
 					offscreenFiber.flags |= Visibility;
-					// 冒泡的是自组件
+					// 冒泡的是子组件
 					bubbleProperties(offscreenFiber);
 				}
 			} else if (isHidden) {
