@@ -19,7 +19,9 @@ function fetchData(id, timeout) {
 
 export function Cpn({ id, timeout }) {
 	const [num, updateNum] = useState(0);
+	// const [data] = useState('654');
 	const { data } = use(fetchData(id, timeout));
+	console.log('星座书上', data);
 
 	if (num !== 0 && num % 5 === 0) {
 		cachePool[id] = null;

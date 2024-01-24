@@ -10,6 +10,7 @@ export function unwindWork(wip: FiberNode) {
 	switch (wip.tag) {
 		case SuspenseComponent:
 			popSuspenseHandler();
+			// 如果存在ShouldCapture并且不存在DidCapture标记
 			if ((flags & ShouldCapture) !== NoFlags && (flags & DidCapture) === NoFlags) {
 				// 从flags中移除掉ShouldCapture，再加上DidCapture
 				wip.flags = (flags & ~ShouldCapture) | DidCapture;

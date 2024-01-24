@@ -267,12 +267,18 @@ function renderRoot(root: fiberRootNode, lane: Lane, shouldTimeSlice: boolean) {
 	do {
 		try {
 			if (wipSuspendedReason !== NotSuspended && workInProgress !== null) {
-				// 意味着现在是挂起状态
+				// 这里意味着遇到use方法，并且改方法还没有相应结果导致抛出了错误，此时wipThrownValue是Promise对象，将其赋值到当前的thrownValue，同时置为null
 				const thrownValue = wipThrownValue;
+				// 将状态置为没有挂起的状态
 				wipSuspendedReason = NotSuspended;
 				wipThrownValue = null;
+				// workInProgress就是use方法抛出的那个fiberNode节点,因为抛出错误的时候并没有执行到fiberNode.next
+				// thrownValue就是传入use的Promise
+				// lane是本次renderRoot的优先级
 				// 进入到unwind流程;
+				// unwind流程的大致逻辑是向上递归，找到距离当前节点最近的Suspense节点，标记为DidCapture
 				throwAndUnwindWorkLoop(root, workInProgress, thrownValue, lane);
+				// 之后会跳出这个逻辑，然后就会继续执行beginWork向下查找而此时的workInProgress就变成了Suspense
 			}
 			shouldTimeSlice ? workLoopConcurrent() : workLoopSync();
 			// 没有问题这里会直接跳出,到这个阶段的workInProgress已经遍历完，workInProgress会指向null
@@ -310,7 +316,8 @@ function throwAndUnwindWorkLoop(
 ) {
 	// 重置 FC 全局变量
 	resetHooksOnUnwind();
-	// 请求返回后重新触发更新
+	// 传入监听的thrownValue（Promise），找到距离unitOfWork最近的Suspense节点并添加上ShouldCapture标记
+	// 内部建立thrownValue（Promise）监听触发重新调度方法
 	throwException(root, thrownValue, lane);
 	// unwind
 	unwindUnitOfWork(unitOfWork);
@@ -320,18 +327,22 @@ function unwindUnitOfWork(unitOfWork: FiberNode) {
 	let incomplteWork: FiberNode | null = unitOfWork;
 
 	do {
+		// 指针向上找直到找到标记了ShouldCapture的Suspense节点
+		// 在Suspense节点中next就是传入进去的incomplteWork
 		const next = unwindWork(incomplteWork);
 		// 如果next不等于null，就相当我们找到了对应的Suspense
 		if (next !== null) {
+			// 这里是终止条件就是找到Suspense节点
 			workInProgress = next;
 			return;
 		}
-
+		// returnFiber就是当前FiberNode的父级节点
 		const returnFiber = incomplteWork.return as FiberNode;
 		if (returnFiber !== null) {
 			// 清除删除标记
 			returnFiber.deletions = null;
 		}
+		// 在这里赋值回来就会形成向上查找的一个完整的循环
 		incomplteWork = returnFiber;
 	} while (incomplteWork !== null);
 
@@ -344,12 +355,14 @@ function unwindUnitOfWork(unitOfWork: FiberNode) {
 function handleThrow(root: fiberRootNode, thrownValue: any) {
 	// Error Boundary
 
+	// 判断捕获到的错误对象是否是Suspense相关的错误，wipThrownValue、wipSuspendedReason都是环境的变量
 	if (thrownValue === SuspenseException) {
-		// Suspense相关的错误,拿到thenable这个对象
+		// Suspense相关的错误,拿到thenable这个对象也就是Promise对象
 		thrownValue = getSuspenseThenable();
 		// 保存捕获的错误原因SuspendedOnData表示请求数据导致挂起
 		wipSuspendedReason = SuspendedOnData;
 	}
+	// 如果是use抛出的错误的话，则保存的是thenable（Promise）,否则则是错误对象本身
 	wipThrownValue = thrownValue;
 }
 

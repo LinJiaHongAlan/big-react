@@ -103,6 +103,7 @@ export const completeWork = (wip: FiberNode) => {
 			const isHidden = offscreenFiber.pendingProps.mode === 'hidden';
 			const currentOffscreenFiber = offscreenFiber.alternate;
 
+			// 判断状态是否发生了变化，如果状态有变化则添加Visibility标记
 			if (currentOffscreenFiber !== null) {
 				// update流程
 				const wasHidden = currentOffscreenFiber.pendingProps.mode === 'hidden';

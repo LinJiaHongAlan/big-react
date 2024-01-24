@@ -19,8 +19,10 @@ export function throwException(root: fiberRootNode, value: any, lane: Lane) {
 		// 所以wakeable跟thenable都是包装好的Promise，只是应用在不同的场景
 		const wakeable: Wakeable<any> = value;
 
+		// 拿到离自己最近的一层<Suspense>节点的FiberNode
 		const suspenseBoundary = getSuspenseHandler();
 		if (suspenseBoundary) {
+			// 在FiberNode打上标记ShouldCapture
 			suspenseBoundary.flags |= ShouldCapture;
 		}
 
@@ -34,7 +36,7 @@ function attachPingListener(root: fiberRootNode, wakeable: Wakeable<any>, lane: 
 	// 线程id
 	let threadIDs: Set<Lane> | undefined;
 
-	// WeakMap{ wakeable: Set[lane1, lane2, ...]}
+	// pingCache = WeakMap{ wakeable(Promise): Set[lane1, lane2, ...]}
 	if (pingCache === null) {
 		threadIDs = new Set<Lane>();
 		pingCache = root.pingCache = new WeakMap<Wakeable<any>, Set<Lane>>();

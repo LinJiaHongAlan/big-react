@@ -64,10 +64,13 @@ function updateSuspenseComponent(wip: FiberNode) {
 	// showFallback这个用来表示是否需要展示Fallback
 	let showFallback = false;
 	// 定义一个变量表示当前是不是挂起的状态,如果为true表示挂起
+	// 这个变量受DidCapture影响，而DidCapture在遇到use报错之后发起的unwind流程中会找到最近的Suspense并标记上DidCapture
 	const didSuspend = (wip.flags & DidCapture) !== NoFlags;
 
+	console.log('didSuspend', didSuspend ? '挂起' : '正常', current);
+
 	if (didSuspend) {
-		// 表示挂起
+		// 进入这里表示是挂起状态,wip具备DidCapture标记，在这里将这个标记清除，并且设置showFallback为true表示需要展示Suspense的fallback的内容
 		showFallback = true;
 		wip.flags &= ~DidCapture;
 	}
@@ -76,14 +79,19 @@ function updateSuspenseComponent(wip: FiberNode) {
 	const nextPrimaryChildren = nextProps.children;
 	const nextFallbackChildren = nextProps.fallback;
 
+	// 收集当前的节点在unwind流程上有作用
 	pushSuspenseHandler(wip);
 
+	// 这里根据current跟showFallback来判断是哪个阶段，哪一种处理，分为4种
+	// 挂起跟正常的处理OffscreenProps.mode是不同的，这个会在completeWork阶段处理，会判断是否发生了变化从而添加Visibility标记
 	// mount
 	if (current === null) {
 		if (showFallback) {
 			// 挂起
+			console.log('首次渲染挂起');
 			return mountSuspenseFallbackChildren(wip, nextPrimaryChildren, nextFallbackChildren);
 		} else {
+			console.log('首次渲染正常');
 			// 正常
 			return mountSuspensePrimaryChildren(wip, nextPrimaryChildren);
 		}
@@ -91,9 +99,11 @@ function updateSuspenseComponent(wip: FiberNode) {
 		// update
 		if (showFallback) {
 			// 挂起
+			console.log('更新时挂起');
 			return updateSuspenseFallbackChildren(wip, nextPrimaryChildren, nextFallbackChildren);
 		} else {
 			// 正常
+			console.log('更新时正常');
 			return updateSuspensePrimaryChildren(wip, nextPrimaryChildren);
 		}
 	}
