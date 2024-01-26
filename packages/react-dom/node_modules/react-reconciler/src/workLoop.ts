@@ -244,7 +244,6 @@ function performSyncWorkOnRoot(root: fiberRootNode) {
 		root.finishedWork = finishedWork;
 		root.finishedLane = nextLane;
 		wipRootRenderLane = NoLane;
-		console.log(root.finishedWork);
 
 		// 这里就可以根据fiberNode树中的flags
 		commitRoot(root);

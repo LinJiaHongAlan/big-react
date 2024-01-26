@@ -67,8 +67,6 @@ function updateSuspenseComponent(wip: FiberNode) {
 	// 这个变量受DidCapture影响，而DidCapture在遇到use报错之后发起的unwind流程中会找到最近的Suspense并标记上DidCapture
 	const didSuspend = (wip.flags & DidCapture) !== NoFlags;
 
-	console.log('didSuspend', didSuspend ? '挂起' : '正常', current);
-
 	if (didSuspend) {
 		// 进入这里表示是挂起状态,wip具备DidCapture标记，在这里将这个标记清除，并且设置showFallback为true表示需要展示Suspense的fallback的内容
 		showFallback = true;
@@ -88,10 +86,8 @@ function updateSuspenseComponent(wip: FiberNode) {
 	if (current === null) {
 		if (showFallback) {
 			// 挂起
-			console.log('首次渲染挂起');
 			return mountSuspenseFallbackChildren(wip, nextPrimaryChildren, nextFallbackChildren);
 		} else {
-			console.log('首次渲染正常');
 			// 正常
 			return mountSuspensePrimaryChildren(wip, nextPrimaryChildren);
 		}
@@ -99,11 +95,9 @@ function updateSuspenseComponent(wip: FiberNode) {
 		// update
 		if (showFallback) {
 			// 挂起
-			console.log('更新时挂起');
 			return updateSuspenseFallbackChildren(wip, nextPrimaryChildren, nextFallbackChildren);
 		} else {
 			// 正常
-			console.log('更新时正常');
 			return updateSuspensePrimaryChildren(wip, nextPrimaryChildren);
 		}
 	}
@@ -119,7 +113,16 @@ function updateSuspensePrimaryChildren(wip: FiberNode, primaryChildren: any) {
 		children: primaryChildren
 	};
 
-	const primaryChildFragment = createFiberFromOffscreen(primaryChildProps);
+  // 这个地方要注意不能使用 createFiberFromOffscreen(primaryChildProps) 来创建primaryChildFragment
+  // 这个操作会导致primaryChildFragment.alternate因为不是复用的原因值一直为null
+  // 在completeWork的SuspenseComponent处理中,const currentOffscreenFiber = offscreenFiber.alternate;一直为null,从而逻辑出现问题
+	// const primaryChildFragment = createFiberFromOffscreen(primaryChildProps);
+
+  // 正确的做法是如果存在OffscreenComponent,需要复用
+  const primaryChildFragment = createWorkInProgress(
+		currentPrimaryChildFragment,
+		primaryChildProps
+	);
 
 	primaryChildFragment.return = wip;
 	primaryChildFragment.sibling = null;
@@ -241,7 +244,7 @@ function updateContextProvider(wip: FiberNode) {
 	// 传入进来的props
 	const newProps = wip.pendingProps;
 	// 拿到value属性，调用pushProvider，pushProvider会将value值保存到context._currentValue中
-	// 因为这里是beginWork所以经过的时候如果是context节点的时候必定是进入这个节点的阶段，相反如果是completeWork阶段必定是跳出这个节点的阶段
+	// 因为这里是beginWork点的阶段，相反如果所以经过的时候如果是context节点的时候必定是进入这个节是completeWork阶段必定是跳出这个节点的阶段
 	pushProvider(context, newProps.value);
 	// 拿到子节点
 	const nextChildren = newProps.children;

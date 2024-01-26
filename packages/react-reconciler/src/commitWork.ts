@@ -110,7 +110,6 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode, root: fiberRootNo
 		finishedWork.flags &= ~ChildDeletion;
 	}
 	if ((flags & PassiveEffect) !== NoFlags) {
-		console.log('commit-PassiveEffect');
 		// 收集回调
 		commitPassiveEffect(finishedWork, root, 'update');
 		// 移除标记
@@ -559,7 +558,6 @@ function insertOrAppendPlacementNodeIntoContainer(
 		if (before) {
 			insertChildToContainer(finishedWork.stateNode, hostParent, before);
 		} else {
-			console.log('后面插入', hostParent, finishedWork.stateNode);
 			appendChildToContainer(hostParent, finishedWork.stateNode);
 		}
 		return;

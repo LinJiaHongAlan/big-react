@@ -107,9 +107,9 @@ export const completeWork = (wip: FiberNode) => {
 			if (currentOffscreenFiber !== null) {
 				// update流程
 				const wasHidden = currentOffscreenFiber.pendingProps.mode === 'hidden';
-				// 这个地方判断offscreenFiber的状态是否发生了变化
+				// 这个地方判断offscreenFiber的状态是否发生了变化,如果发生了变化添加Visibility标记
+        // 为什么需要这么大费周章去添加Visibility标记?
 				if (isHidden !== wasHidden) {
-					// 如果发生了变化添加Visibility标记
 					offscreenFiber.flags |= Visibility;
 					// 冒泡的是子组件
 					bubbleProperties(offscreenFiber);
